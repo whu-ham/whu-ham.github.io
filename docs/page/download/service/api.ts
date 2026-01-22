@@ -8,7 +8,7 @@ import {AppStoreResponse, GithubReleaseApiResponse} from './types';
 
 const fetchGithubReleaseList = async (): Promise<GithubReleaseApiResponse[]> => {
   const {data}: { status: number, data?: GithubReleaseApiResponse[] } =
-    await axios.get(`https://api.github.com/repos/orangeboyChen/whu-ham/releases`);
+    await axios.get(`https://api.github.com/repos/whu-ham/whu-ham.github.io/releases`);
   return data;
 }
 

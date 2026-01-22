@@ -104,7 +104,7 @@ export const zh = defineConfig({
     nav: nav,
     sidebar: sideBar,
     editLink: {
-      pattern: 'https://github.com/orangeboyChen/whu-ham',
+      pattern: 'https://github.com/whu-ham',
     }
   },
 })
