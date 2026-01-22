@@ -19,7 +19,7 @@
   "name": "Ham-doc",
   "version": "1.0.0",
   "main": "vuepress dev docs",
-  "repository": "https://github.com/orangeboyChen/whu-ham.git",
+  "repository": "https://github.com/whu-ham/whu-ham.github.io.git",
   "author": "orangeboy <chenenhan@qq.com>",
   "license": "MIT",
   "private": false,

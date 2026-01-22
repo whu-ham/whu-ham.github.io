@@ -8,11 +8,11 @@
 
 ### 文档
 
-需要获取使用帮助请[前往文档主页](https://orangeboychen.github.io/whu-ham/)
+需要获取使用帮助请[前往文档主页](https://whu-ham.github.io)
 
 ### 下载安装
 
-[前往下载地址(Android / iOS)](https://orangeboychen.github.io/whu-ham/download/)
+[前往下载地址(Android / iOS)](https://whu-ham.github.io)
 
 ### 它能做什么
 
@@ -64,8 +64,8 @@
 3. 技术债太多了，很多代码质量远达不到开源项目的标准
 
 暂时/已经开源的子项目：
-1. [成绩计算](https://github.com/whu-ham/ScoreCalculator)(成绩 -> 设置 -> 选择计算方式里的数据来源)
-2. [ham-rn](https://github.com/orangeboyChen/ham-rn)(APP里用到的ReactNative组件大仓)
-3. [ham-web](https://github.com/orangeboyChen/ham-web)(Ham for Web)
+1. [成绩计算](https://github.com/whu-ham/ham-score-calculator)(成绩 -> 设置 -> 选择计算方式里的数据来源)
+2. [ham-rn](https://github.com/whu-ham/ham-rn)(APP里用到的ReactNative组件大仓)
+3. [ham-web](https://github.com/whu-ham/ham-web)(Ham for Web)
 
 目前有计划模块化/重构APP里的部分功能，并开源这些模块（如果时间充足），期待下吧:->

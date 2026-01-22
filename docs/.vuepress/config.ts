@@ -15,7 +15,7 @@ export default defineUserConfig({
     base: '/whu-ham/',
     head: [
         ['link', { rel: 'icon', href: 'icon-1024 2.png' }],
-        ['link', { rel: 'manifest', href: 'https://orangeboychen.github.io/whu-ham/manifest.webmanifest' }]
+        ['link', { rel: 'manifest', href: 'https://whu-ham.github.io/manifest.webmanifest' }]
     ],
     plugins: [
         { name: '@vuepress/last-updated' },
@@ -43,9 +43,9 @@ export default defineUserConfig({
         })
     ],
     theme: defaultTheme({
-        repo: 'orangeboyChen/whu-ham',
+        repo: 'whu-ham/whu-ham.github.io',
         editLink: true,
-        docsRepo: 'orangeboyChen/whu-ham',
+        docsRepo: 'whu-ham/whu-ham.github.io',
         docsDir: 'docs',
         docsBranch: 'main',
         locales: {

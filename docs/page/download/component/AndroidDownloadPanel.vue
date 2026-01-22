@@ -43,7 +43,7 @@ onMounted(async () => {
       <p class="custom-block-title">请求失败</p>
       <p>{{error?.message}}</p>
     </div>
-    <ArrowLink href="https://github.com/orangeboyChen/whu-ham/releases/latest" text="前往Github Release"/>
+    <ArrowLink href="https://github.com/whu-ham/whu-ham.github.io/releases/latest" text="前往Github Release"/>
   </div>
 </template>
 
