@@ -1,5 +1,4 @@
-import {defineConfig} from 'vitepress';
-import {DefaultTheme} from 'vitepress/types/default-theme';
+import {defineConfig, DefaultTheme} from 'vitepress';
 
 const nav: DefaultTheme.NavItem[] = [
   {
@@ -103,19 +102,28 @@ export const zh = defineConfig({
   themeConfig: {
     nav: nav,
     sidebar: sideBar,
+    outlineTitle: '本页目录',
+    lastUpdatedText: '最近更新',
+    returnToTopLabel: '返回顶部',
     editLink: {
-      pattern: 'https://github.com/whu-ham',
+      pattern:
+        'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',
+      text: '编辑此页',
+    },
+    docFooter: {
+      prev: '上一页',
+      next: '下一页',
     },
   },
 });
 
 export const zhSearch: DefaultTheme.AlgoliaSearchOptions['locales'] = {
-  zh: {
+  root: {
     placeholder: '搜索文档',
     translations: {
       button: {
-        buttonText: '搜索文档',
-        buttonAriaLabel: '搜索文档',
+        buttonText: '搜索',
+        buttonAriaLabel: '搜索',
       },
       modal: {
         searchBox: {

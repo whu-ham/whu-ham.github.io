@@ -7,9 +7,12 @@ hero:
     src: images/icons/android-chrome-192x192.png
     alt: Ham-Logo
   actions:
-    - text: 下载 →
+    - theme: brand
+      text: 下载
       link: /download/
-      type: primary
+    - theme: alt
+      text: 使用手册
+      link: /handbook/
 
 home: true
 heroText: Ham

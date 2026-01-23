@@ -6,6 +6,7 @@ import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import './style.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
+import {setupLocaleRedirect} from './localeRedirect';
 
 export default {
   extends: DefaultTheme,
@@ -14,9 +15,10 @@ export default {
       // https://vitepress.dev/guide/extending-default-theme#layout-slots
     });
   },
-  enhanceApp({app}) {
+  enhanceApp({app, router}) {
     app.use(ElementPlus);
     injectVueComponent({app});
+    setupLocaleRedirect(router);
   },
 } satisfies Theme;
 
