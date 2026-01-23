@@ -4,6 +4,7 @@ import {
   AndroidVersionInfo,
   getLatestAndroidVersionInfo,
 } from '../service/android_version_fetch';
+import {useDownloadI18n} from '../service/i18n';
 import ArrowLink from '../../../components/ArrowLink.vue';
 import AndroidReleaseItem from './AndroidReleaseItem.vue';
 
@@ -17,6 +18,7 @@ enum LoadState {
 const loadState = ref<LoadState>(LoadState.UNLOAD);
 const releaseList = ref<AndroidVersionInfo[]>([]);
 const error = ref<Error | null>(null);
+const {t} = useDownloadI18n();
 
 onMounted(async () => {
   if (loadState.value == LoadState.LOADING) {
@@ -41,12 +43,12 @@ onMounted(async () => {
   </div>
   <div v-else-if="loadState === LoadState.FAIL">
     <div class="danger custom-block">
-      <p class="custom-block-title">请求失败</p>
+      <p class="custom-block-title">{{ t('requestFailedTitle') }}</p>
       <p>{{ error?.message }}</p>
     </div>
     <ArrowLink
       href="https://github.com/whu-ham/whu-ham.github.io/releases/latest"
-      text="前往Github Release" />
+      :text="t('goToGithubRelease')" />
   </div>
 </template>
 

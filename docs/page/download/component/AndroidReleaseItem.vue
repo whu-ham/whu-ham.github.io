@@ -7,10 +7,12 @@ import ArrowLink from '../../../components/ArrowLink.vue';
 import {formatDate} from '../service/date';
 import PreReleaseTag from './PreReleaseTag.vue';
 import NoticeView from './NoticeView.vue';
+import {useDownloadI18n} from '../service/i18n';
 
 const {item} = defineProps<{
   item: AndroidVersionInfo;
 }>();
+const {t} = useDownloadI18n();
 
 const getTagName = (item: AndroidApkInfo) => {
   const name = item.name;
@@ -28,13 +30,15 @@ const getTagName = (item: AndroidApkInfo) => {
       <h3 class="title-text">{{ item.name }}</h3>
       <PreReleaseTag v-if="item.prerelease" class="title-tag" style="" />
     </div>
-    <span class="caption">发布于 {{ formatDate(item.createTime) }}</span>
+    <span class="caption"
+      >{{ t('publishedOn') }} {{ formatDate(item.createTime) }}</span
+    >
 
     <blockquote>
       <div v-html="item.versionLog.replace(/\n/g, '<br>')"></div>
     </blockquote>
 
-    <NoticeView title="下载地址">
+    <NoticeView :title="t('downloadLinksTitle')">
       <div v-for="apk in item.apkList" class="apk-link" v-bind:key="apk.name">
         <span>
           <el-tag
@@ -46,10 +50,13 @@ const getTagName = (item: AndroidApkInfo) => {
           >
           {{ apk.name }}
           <span class="apk-download-count">
-            {{ apk.downloadCount }}次下载
+            {{ apk.downloadCount }}{{ t('downloadsSuffix') }}
           </span>
         </span>
-        <ArrowLink class="apk-download" :href="apk.downloadUrl" text="下载" />
+        <ArrowLink
+          class="apk-download"
+          :href="apk.downloadUrl"
+          :text="t('download')" />
       </div>
     </NoticeView>
   </div>

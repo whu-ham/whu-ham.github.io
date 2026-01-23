@@ -1,4 +1,6 @@
 import {defineConfig} from 'vitepress';
+import {enSearch} from './en';
+import {jaSearch} from './ja';
 import {zhSearch} from './zh';
 import * as path from 'node:path';
 
@@ -31,6 +33,8 @@ export const shared = defineConfig({
         apiKey: 'c509e924662c649625019c373a234990',
         indexName: 'whu-ham',
         locales: {
+          ...enSearch,
+          ...jaSearch,
           ...zhSearch,
         },
       },

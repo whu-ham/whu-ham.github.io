@@ -7,8 +7,10 @@ import {
 import ArrowLink from '../../../components/ArrowLink.vue';
 import {formatDate} from '../service/date';
 import NoticeView from './NoticeView.vue';
+import {useDownloadI18n} from '../service/i18n';
 
 const versionInfo = ref<IOSVersionInfo>();
+const {t} = useDownloadI18n();
 
 onMounted(async () => {
   versionInfo.value = await getLatestIOSVersionInfo();
@@ -20,30 +22,30 @@ onMounted(async () => {
     <div v-if="versionInfo">
       <h3>{{ versionInfo.name }}</h3>
       <span class="caption"
-        >发布于 {{ formatDate(versionInfo.publishDate) }}</span
+        >{{ t('publishedOn') }} {{ formatDate(versionInfo.publishDate) }}</span
       >
       <blockquote>
         <div class="ham_text_t1">{{ versionInfo.updateLog }}</div>
       </blockquote>
       <ArrowLink
         href="https://apps.apple.com/cn/app/ham/id1577896044"
-        text="前往App Store下载正式版" />
+        :text="t('appStoreDownload')" />
     </div>
 
     <div>
-      <h3>测试版</h3>
-      <NoticeView title="提示">
+      <h3>{{ t('betaTitle') }}</h3>
+      <NoticeView :title="t('noticeTitle')">
         <p>
-          下载测试版前，请确保你的设备已安装
+          {{ t('testflightPromptPrefix') }}
           <ArrowLink
             href="https://apps.apple.com/us/app/testflight/id899247664"
             text="TestFlight" />
-          。
+          {{ t('testflightPromptSuffix') }}
         </p>
       </NoticeView>
       <ArrowLink
         href="itms-beta://testflight.apple.com/join/waKNnCG3"
-        text="加入TestFlight内测" />
+        :text="t('joinTestflight')" />
     </div>
   </div>
 </template>

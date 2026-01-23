@@ -1,8 +1,12 @@
-<script setup></script>
+<script setup>
+import {useDownloadI18n} from '../service/i18n';
+
+const {t} = useDownloadI18n();
+</script>
 
 <template>
   <span data-view-component="true" class="Label Label--warning Label--large"
-    >Pre-release</span
+    >{{ t('preRelease') }}</span
   >
 </template>
 
