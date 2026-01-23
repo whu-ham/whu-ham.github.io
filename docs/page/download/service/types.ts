@@ -119,4 +119,4 @@ export type {
   GithubAsset,
   AppStoreResponse,
   AppDetails,
-}
+};

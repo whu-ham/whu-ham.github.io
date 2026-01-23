@@ -1,10 +1,9 @@
-<script setup>
-
-</script>
+<script setup></script>
 
 <template>
- <span data-view-component="true"
-       class="Label Label--warning Label--large">Pre-release</span>
+  <span data-view-component="true" class="Label Label--warning Label--large"
+    >Pre-release</span
+  >
 </template>
 
 <style scoped lang="scss">
@@ -24,7 +23,8 @@
     padding-top: 0.1rem;
   }
 
-  &--attention, &--warning {
+  &--attention,
+  &--warning {
     border-color: #9e6a03;
     color: #d29922;
   }

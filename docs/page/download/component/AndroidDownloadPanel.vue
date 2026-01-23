@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue';
-import {AndroidVersionInfo, getLatestAndroidVersionInfo} from "../service/android_version_fetch";
-import ArrowLink from "../../../components/ArrowLink.vue";
-import AndroidReleaseItem from "./AndroidReleaseItem.vue";
-import ElLoading from "element-plus";
+import {
+  AndroidVersionInfo,
+  getLatestAndroidVersionInfo,
+} from '../service/android_version_fetch';
+import ArrowLink from '../../../components/ArrowLink.vue';
+import AndroidReleaseItem from './AndroidReleaseItem.vue';
 
 enum LoadState {
   UNLOAD,
@@ -28,8 +30,7 @@ onMounted(async () => {
     loadState.value = LoadState.FAIL;
     error.value = e;
   }
-})
-
+});
 </script>
 
 <template>
@@ -41,9 +42,11 @@ onMounted(async () => {
   <div v-else-if="loadState === LoadState.FAIL">
     <div class="danger custom-block">
       <p class="custom-block-title">请求失败</p>
-      <p>{{error?.message}}</p>
+      <p>{{ error?.message }}</p>
     </div>
-    <ArrowLink href="https://github.com/whu-ham/whu-ham.github.io/releases/latest" text="前往Github Release"/>
+    <ArrowLink
+      href="https://github.com/whu-ham/whu-ham.github.io/releases/latest"
+      text="前往Github Release" />
   </div>
 </template>
 

@@ -3,7 +3,7 @@
  * @version 1.0
  * @date 2025/1/23 15:51
  */
-import {fetchIOSAppStoreReleaseInfo} from "./api";
+import {fetchIOSAppStoreReleaseInfo} from './api';
 
 interface IOSVersionInfo {
   name: string;
@@ -18,14 +18,10 @@ const getLatestIOSVersionInfo = async (): Promise<IOSVersionInfo> => {
   return {
     name: result.version,
     publishDate: new Date(result.currentVersionReleaseDate),
-    updateLog: result.releaseNotes
-  }
-}
+    updateLog: result.releaseNotes,
+  };
+};
 
-export type {
-  IOSVersionInfo,
-}
+export type {IOSVersionInfo};
 
-export {
-  getLatestIOSVersionInfo,
-}
+export {getLatestIOSVersionInfo};

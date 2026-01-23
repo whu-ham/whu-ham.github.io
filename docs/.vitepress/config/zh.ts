@@ -1,24 +1,24 @@
-import {defineConfig} from "vitepress";
-import {DefaultTheme} from "vitepress/types/default-theme";
+import {defineConfig} from 'vitepress';
+import {DefaultTheme} from 'vitepress/types/default-theme';
 
 const nav: DefaultTheme.NavItem[] = [
   {
     text: '下载',
-    link: '/download/'
+    link: '/download/',
   },
   {
     text: '使用手册',
-    link: '/handbook/'
+    link: '/handbook/',
   },
   {
     text: '协议',
-    link: '/privacy/'
+    link: '/privacy/',
   },
   {
     text: '关于',
-    link: '/about/'
+    link: '/about/',
   },
-]
+];
 
 const sideBar: DefaultTheme.Sidebar = {
   '/handbook/': [
@@ -41,42 +41,42 @@ const sideBar: DefaultTheme.Sidebar = {
         },
         {
           text: '图书馆',
-          link: 'library'
+          link: 'library',
         },
         {
           text: '成绩',
-          link: 'score'
+          link: 'score',
         },
         {
           text: '运动场馆',
-          link: 'sport'
+          link: 'sport',
         },
         {
           text: '珞珈E卡',
-          link: 'pay'
+          link: 'pay',
         },
         {
           text: '日程',
-          link: 'schedule'
+          link: 'schedule',
         },
         {
           text: '校车',
-          link: 'bus'
+          link: 'bus',
         },
         {
           text: '自动化',
-          link: 'automatic'
+          link: 'automatic',
         },
         {
           text: '同步',
-          link: 'sync'
+          link: 'sync',
         },
         {
           text: '问题反馈',
-          link: 'bugfix'
-        }
-      ]
-    }
+          link: 'bugfix',
+        },
+      ],
+    },
   ],
   '/privacy/': [
     {
@@ -90,12 +90,12 @@ const sideBar: DefaultTheme.Sidebar = {
         },
         {
           text: '用户协议',
-          link: 'user-policy'
-        }
-      ]
-    }
+          link: 'user-policy',
+        },
+      ],
+    },
   ],
-}
+};
 
 export const zh = defineConfig({
   lang: 'zh-Hans',
@@ -105,9 +105,9 @@ export const zh = defineConfig({
     sidebar: sideBar,
     editLink: {
       pattern: 'https://github.com/whu-ham',
-    }
+    },
   },
-})
+});
 
 export const zhSearch: DefaultTheme.AlgoliaSearchOptions['locales'] = {
   zh: {
@@ -115,14 +115,14 @@ export const zhSearch: DefaultTheme.AlgoliaSearchOptions['locales'] = {
     translations: {
       button: {
         buttonText: '搜索文档',
-        buttonAriaLabel: '搜索文档'
+        buttonAriaLabel: '搜索文档',
       },
       modal: {
         searchBox: {
           resetButtonTitle: '清除查询条件',
           resetButtonAriaLabel: '清除查询条件',
           cancelButtonText: '取消',
-          cancelButtonAriaLabel: '取消'
+          cancelButtonAriaLabel: '取消',
         },
         startScreen: {
           recentSearchesTitle: '搜索历史',
@@ -130,26 +130,25 @@ export const zhSearch: DefaultTheme.AlgoliaSearchOptions['locales'] = {
           saveRecentSearchButtonTitle: '保存至搜索历史',
           removeRecentSearchButtonTitle: '从搜索历史中移除',
           favoriteSearchesTitle: '收藏',
-          removeFavoriteSearchButtonTitle: '从收藏中移除'
+          removeFavoriteSearchButtonTitle: '从收藏中移除',
         },
         errorScreen: {
           titleText: '无法获取结果',
-          helpText: '你可能需要检查你的网络连接'
+          helpText: '你可能需要检查你的网络连接',
         },
         footer: {
           selectText: '选择',
           navigateText: '切换',
           closeText: '关闭',
-          searchByText: '搜索提供者'
+          searchByText: '搜索提供者',
         },
         noResultsScreen: {
           noResultsText: '无法找到相关结果',
           suggestedQueryText: '你可以尝试查询',
           reportMissingResultsText: '你认为该查询应该有结果？',
-          reportMissingResultsLinkText: '点击反馈'
-        }
-      }
-    }
-  }
-}
-
+          reportMissingResultsLinkText: '点击反馈',
+        },
+      },
+    },
+  },
+};

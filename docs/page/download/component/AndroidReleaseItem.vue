@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import {AndroidApkInfo, AndroidVersionInfo} from "../service/android_version_fetch";
-import ArrowLink from "../../../components/ArrowLink.vue";
-import {onMounted} from "vue";
-import {formatDate} from "../service/date";
-import PreReleaseTag from "./PreReleaseTag.vue";
-import NoticeView from "./NoticeView.vue";
+import {
+  AndroidApkInfo,
+  AndroidVersionInfo,
+} from '../service/android_version_fetch';
+import ArrowLink from '../../../components/ArrowLink.vue';
+import {formatDate} from '../service/date';
+import PreReleaseTag from './PreReleaseTag.vue';
+import NoticeView from './NoticeView.vue';
 
 const {item} = defineProps<{
-  item: AndroidVersionInfo,
-}>()
+  item: AndroidVersionInfo;
+}>();
 
 const getTagName = (item: AndroidApkInfo) => {
   const name = item.name;
@@ -17,15 +19,14 @@ const getTagName = (item: AndroidApkInfo) => {
   } else {
     return 'ARM64';
   }
-}
-
+};
 </script>
 
 <template>
   <div>
     <div class="title-container">
       <h3 class="title-text">{{ item.name }}</h3>
-      <PreReleaseTag v-if="item.prerelease" class="title-tag" style=""/>
+      <PreReleaseTag v-if="item.prerelease" class="title-tag" style="" />
     </div>
     <span class="caption">发布于 {{ formatDate(item.createTime) }}</span>
 
@@ -34,17 +35,22 @@ const getTagName = (item: AndroidApkInfo) => {
     </blockquote>
 
     <NoticeView title="下载地址">
-      <div v-for="apk in item.apkList" class="apk-link">
+      <div v-for="apk in item.apkList" class="apk-link" v-bind:key="apk.name">
         <span>
-          <el-tag disable-transitions class="apk-tag" type="primary" effect="dark">{{ getTagName(apk) }}</el-tag>
+          <el-tag
+            disable-transitions
+            class="apk-tag"
+            type="primary"
+            effect="dark"
+            >{{ getTagName(apk) }}</el-tag
+          >
           {{ apk.name }}
           <span class="apk-download-count">
-           {{ apk.downloadCount }}次下载
+            {{ apk.downloadCount }}次下载
           </span>
         </span>
-        <ArrowLink class="apk-download" :href="apk.downloadUrl" text="下载"/>
+        <ArrowLink class="apk-download" :href="apk.downloadUrl" text="下载" />
       </div>
-
     </NoticeView>
   </div>
 </template>

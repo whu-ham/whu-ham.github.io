@@ -13,7 +13,4 @@ interface RangeColorData {
   range: RangeColor[];
 }
 
-export type {
-  RangeColorData,
-  RangeColor
-}
+export type {RangeColorData, RangeColor};

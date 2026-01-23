@@ -13,18 +13,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
       - name: Setup Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: '21'
+          node-version: 25.4.0
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9
-      - name: pnpm install
-        run: pnpm install
+          version: 10.6.4
+          run_install: true
       - name: Build VitePress site
         run: pnpm docs:build
       - name: Deploy to GitHub Pages
