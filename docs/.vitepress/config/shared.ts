@@ -1,5 +1,6 @@
 import {defineConfig} from 'vitepress';
 import {zhSearch} from './zh';
+import * as path from 'node:path';
 
 export const shared = defineConfig({
   title: 'Ham',
@@ -32,6 +33,13 @@ export const shared = defineConfig({
         locales: {
           ...zhSearch,
         },
+      },
+    },
+  },
+  vite: {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '../..'),
       },
     },
   },
