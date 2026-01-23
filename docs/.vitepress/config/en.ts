@@ -106,7 +106,8 @@ export const en = defineConfig({
     lastUpdatedText: 'Last updated',
     returnToTopLabel: 'Return to top',
     editLink: {
-      pattern: 'https://github.com/whu-ham',
+      pattern:
+        'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',
       text: 'Edit this page',
     },
     docFooter: {

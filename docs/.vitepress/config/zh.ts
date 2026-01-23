@@ -106,7 +106,8 @@ export const zh = defineConfig({
     lastUpdatedText: '最近更新',
     returnToTopLabel: '返回顶部',
     editLink: {
-      pattern: 'https://github.com/whu-ham',
+      pattern:
+        'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',
       text: '编辑此页',
     },
     docFooter: {
