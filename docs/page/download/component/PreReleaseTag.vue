@@ -5,9 +5,9 @@ const {t} = useDownloadI18n();
 </script>
 
 <template>
-  <span data-view-component="true" class="Label Label--warning Label--large"
-    >{{ t('preRelease') }}</span
-  >
+  <span data-view-component="true" class="Label Label--warning Label--large">{{
+    t('preRelease')
+  }}</span>
 </template>
 
 <style scoped lang="scss">
