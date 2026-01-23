@@ -1,10 +1,8 @@
 <script setup lang="ts">
-
 const {title, level} = defineProps<{
-  title?: string,
-  level?: string,
-}>()
-
+  title?: string;
+  level?: string;
+}>();
 </script>
 
 <template>
@@ -14,6 +12,4 @@ const {title, level} = defineProps<{
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

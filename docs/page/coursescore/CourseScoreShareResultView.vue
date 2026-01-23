@@ -1,11 +1,10 @@
 <script setup lang="ts">
-
 import {getColorConfig} from './service/color';
 import md5 from 'js-md5';
 import {onMounted, ref} from 'vue';
 import {useRouter} from 'vitepress';
 
-const colorConfig = ref<any>({})
+const colorConfig = ref({});
 const router = useRouter();
 const statData = ref<CourseGradeStatData>();
 
@@ -21,35 +20,39 @@ interface CourseGradeStatData {
       from: number;
       to: number;
       total: number;
-    }[],
-  },
-  dataTime: string,
+    }[];
+  };
+  dataTime: string;
 }
 
 const parseQuery = (query: string): CourseGradeStatData | undefined => {
-  const { name, instructor, sign, data, dataTime, v } = Object.fromEntries(new URLSearchParams(query));
+  const {name, instructor, sign, data, dataTime, v} = Object.fromEntries(
+    new URLSearchParams(query),
+  );
   if (v !== '2') {
     return;
   }
-  const targetSign = md5(`v2${name}${instructor}${data}${dataTime}uTYbpYG7YSVzncQZ`);
+  const targetSign = md5(
+    `v2${name}${instructor}${data}${dataTime}uTYbpYG7YSVzncQZ`,
+  );
   if (targetSign !== sign) {
     return;
   }
   return {
     courseInfo: {
       instructor: decodeURI(instructor),
-      name: decodeURI(name)
+      name: decodeURI(name),
     },
     dataTime: dataTime,
-    scoreInfo: JSON.parse(data)
-  }
-}
+    scoreInfo: JSON.parse(data),
+  };
+};
 
 onMounted(async () => {
   const applyQueryData = () => {
     let search = window.location.search;
     if (search[0] === '?' && search[1] === '?') {
-      search = search.slice(1)
+      search = search.slice(1);
     }
     const data = parseQuery(search);
     if (!data) {
@@ -61,13 +64,12 @@ onMounted(async () => {
 
   const removeTop = () => {
     document.querySelector('.container').remove();
-  }
+  };
 
   colorConfig.value = await getColorConfig();
   applyQueryData();
   removeTop();
-})
-
+});
 </script>
 
 <template>
@@ -75,20 +77,29 @@ onMounted(async () => {
     <h2 class="course-name">给分数据 - {{ statData.courseInfo.name }}</h2>
     <p class="instructor">{{ statData.courseInfo.instructor }}</p>
     <div class="container">
-      <div class="course-score-item-container" v-for="info in statData.scoreInfo.data">
+      <div
+        class="course-score-item-container"
+        v-for="info in statData.scoreInfo.data"
+        v-bind:key="info.from">
         <div class="course-score-item-tip">{{ info.from }}-{{ info.to }}</div>
-        <div :style="{
-          width: info.total / statData.scoreInfo.total * 80 + '%',
-          background: colorConfig[`${info.from}-${info.to}`] ?? '',
-        }"
-             class="course-score-item-division"
-             v-if="info.total > 0"/>
-        <span :style="{
-          color: colorConfig[`${info.from}-${info.to}`] ?? '',
-        }">{{ info.total }}</span>
+        <div
+          :style="{
+            width: (info.total / statData.scoreInfo.total) * 80 + '%',
+            background: colorConfig[`${info.from}-${info.to}`] ?? '',
+          }"
+          class="course-score-item-division"
+          v-if="info.total > 0" />
+        <span
+          :style="{
+            color: colorConfig[`${info.from}-${info.to}`] ?? '',
+          }"
+          >{{ info.total }}</span
+        >
       </div>
     </div>
-    <div class="tip">该给分数据由用户于{{ statData.dataTime }}生成，不保证数据实时性。</div>
+    <div class="tip">
+      该给分数据由用户于{{ statData.dataTime }}生成，不保证数据实时性。
+    </div>
   </div>
 </template>
 
@@ -122,5 +133,4 @@ onMounted(async () => {
 .course-name {
   margin-bottom: 0;
 }
-
 </style>

@@ -23,11 +23,11 @@ const getLatestAndroidVersionInfo = async () => {
   const response = await fetchGithubReleaseList();
   console.info(response);
   const androidVersionInfoList = response.map(o => {
-    return mapGithubResponseToAndroidVersionInfo(o)
+    return mapGithubResponseToAndroidVersionInfo(o);
   });
 
   const resultList: AndroidVersionInfo[] = [];
-  for (let versionInfo of androidVersionInfoList) {
+  for (const versionInfo of androidVersionInfoList) {
     if (versionInfo.prerelease) {
       resultList.push(versionInfo);
     } else {
@@ -36,30 +36,27 @@ const getLatestAndroidVersionInfo = async () => {
     }
   }
   return resultList;
-}
+};
 
-const mapGithubResponseToAndroidVersionInfo = (response: GithubReleaseApiResponse): AndroidVersionInfo => {
+const mapGithubResponseToAndroidVersionInfo = (
+  response: GithubReleaseApiResponse,
+): AndroidVersionInfo => {
   const assetList: AndroidApkInfo[] = response.assets.map(asset => {
     return {
       name: asset.name,
       downloadUrl: asset.browser_download_url,
       downloadCount: asset.download_count,
-    }
-  })
+    };
+  });
   return {
     prerelease: response.prerelease,
     name: response.tag_name,
     versionLog: response.body,
     createTime: new Date(response.published_at),
-    apkList: assetList
+    apkList: assetList,
   };
-}
+};
 
-export type {
-  AndroidVersionInfo,
-  AndroidApkInfo,
-}
+export type {AndroidVersionInfo, AndroidApkInfo};
 
-export {
-  getLatestAndroidVersionInfo,
-}
+export {getLatestAndroidVersionInfo};
