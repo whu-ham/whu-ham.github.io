@@ -13,6 +13,8 @@ export const setupLocaleRedirect = (router: LocaleRouter) => {
     return;
   }
 
+  let isAutoRedirect = false;
+
   const handleRoute = (to: string) => {
     const desiredLocale = getPreferredLocale();
     const currentLocale = getLocaleFromPath(to);
@@ -24,10 +26,23 @@ export const setupLocaleRedirect = (router: LocaleRouter) => {
     if (targetPath === to) {
       return;
     }
+    isAutoRedirect = true;
     router.go?.(targetPath);
   };
 
   router.onAfterRouteChange = (to: string) => {
+    if (isAutoRedirect) {
+      isAutoRedirect = false;
+      return;
+    }
+
+    const desiredLocale = getPreferredLocale();
+    const currentLocale = getLocaleFromPath(to);
+    if (currentLocale !== desiredLocale) {
+      setUserLocale(currentLocale);
+      return;
+    }
+
     handleRoute(to);
   };
 
@@ -51,22 +66,16 @@ const setupLocaleSelectionListener = () => {
         return;
       }
       const url = new URL(href, window.location.origin);
+      if (url.origin !== window.location.origin) {
+        return;
+      }
       const locale = getLocaleFromPath(url.pathname);
-      if (isLocaleRoot(url.pathname)) {
+      const currentLocale = getLocaleFromPath(window.location.pathname);
+      if (locale !== currentLocale) {
         setUserLocale(locale);
       }
     },
     {capture: true},
-  );
-};
-
-const isLocaleRoot = (path: string) => {
-  return (
-    path === '/' ||
-    path === '/en' ||
-    path === '/en/' ||
-    path === '/ja' ||
-    path === '/ja/'
   );
 };
 
