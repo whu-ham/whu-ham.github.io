@@ -2,8 +2,10 @@
 layout: home
 hero:
   name: Ham
-  text: WHU向けキャンパスアシスタント
-  tagline: 軽量でプライバシー重視のコンパニオンアプリ
+  tagline: マニュアルと規約
+  image:
+    src: ../images/icons/android-chrome-192x192.png
+    alt: Ham-Logo
   actions:
     - theme: brand
       text: ダウンロード
@@ -11,10 +13,32 @@ hero:
     - theme: alt
       text: マニュアル
       link: /ja/handbook/
+
+home: true
+heroText: Ham
+heroImage: ../icon-1024 2.png
+tagline:
+
 features:
-  - title: プライバシー重視
-    details: アカウント情報は端末内に保存され、機微情報は送信前にハッシュ化されます。
-  - title: 日常の必須機能
-    details: 授業、成績、図書館、キャンパスカード、シャトルなどをまとめて管理。
-  - title: 無料で利用可能
-    details: 課金や広告はなく、データの転売もしません。
+  - icon: 📚
+    title: 授業
+    details: 授業を素早く取り込み、授業情報を確認
+  - icon: ⭐️
+    title: 成績
+    details: GPAや単位を計算し、成績分布を確認
+  - icon: 🏛️
+    title: 図書館
+    details: 自動予約で毎日の手動予約の手間を省く
+  - icon: 🏃‍➡️
+    title: スポーツ
+    details: スポーツ施設を自動予約して毎日の運動を支援
+  - icon: 💳️
+    title: Eカード
+    details: ホーム画面からEカードを素早く起動
+  - icon: 🚌
+    title: シャトル
+    details: バスの到着情報を確認
+  - icon: 📅
+    title: 予定
+    details: 課題を追加して期限前通知、授業に関連付け、iOSカレンダーに同期
+---

@@ -2,8 +2,10 @@
 layout: home
 hero:
   name: Ham
-  text: Campus helper for WHU
-  tagline: A lightweight, privacy-first companion app
+  tagline: Handbook and policies
+  image:
+    src: ../images/icons/android-chrome-192x192.png
+    alt: Ham-Logo
   actions:
     - theme: brand
       text: Download
@@ -11,10 +13,32 @@ hero:
     - theme: alt
       text: Handbook
       link: /en/handbook/
+
+home: true
+heroText: Ham
+heroImage: ../icon-1024 2.png
+tagline:
+
 features:
-  - title: Privacy-first
-    details: Account data stays on your device; sensitive data is hashed before upload.
-  - title: Daily essentials
-    details: Courses, grades, library, campus card, shuttle, and more.
-  - title: Free to use
-    details: No paywalls, no ads, and no data resale.
+  - icon: 📚
+    title: Courses
+    details: Import courses quickly and view course info
+  - icon: ⭐️
+    title: Grades
+    details: Calculate GPA and credits, check grade distribution
+  - icon: 🏛️
+    title: Library
+    details: Auto-book seats and skip daily manual reservations
+  - icon: 🏃‍➡️
+    title: Sports
+    details: Auto-book sports venues for daily workouts
+  - icon: 💳️
+    title: E-Card
+    details: Open the E-Card quickly from your home screen
+  - icon: 🚌
+    title: Shuttle
+    details: Check campus bus arrival info
+  - icon: 📅
+    title: Schedule
+    details: Add assignments with reminders, link to courses, and sync to iOS Calendar
+---
