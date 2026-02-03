@@ -1,5 +1,5 @@
 # Privacy Policy
-(Revision date: July 16, 2022; Effective date: July 16, 2022)
+(Revision date: February 3, 2026; Effective date: July 16, 2022)
 
 Ham values and protects your personal privacy. Sometimes we need certain information to provide the services you request. This privacy statement explains how data is collected and used in these cases. This statement applies to all related services of the Ham app.
 
@@ -20,15 +20,81 @@ Personal information involved: WLAN status information, location information
 
 Privacy policy link: [https://lbs.amap.com/pages/privacy/](https://lbs.amap.com/pages/privacy/)
 
-<br/>
+**Unified Scan Service**
 
-**UMeng SDK**
+Third-party name: Huawei Software Technologies Co., Ltd.
 
-Service type: Statistics and performance analysis
+Purpose: Scan code login and sharing
 
-Personal information collected: Device information
+Function type: QR code scan
 
-Privacy policy link: [https://www.umeng.com/page/policy](https://www.umeng.com/page/policy)
+Personal information involved: Camera permission
+
+Privacy policy link: [https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971](https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971)
+
+**Remote Configuration**
+
+Third-party name: Huawei Software Technologies Co., Ltd.
+
+Purpose: Remote configuration
+
+Function type: Remote configuration
+
+Privacy policy link: [https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207](https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207)
+
+**Google SDK**
+
+Third-party name: Google
+
+Purpose: Device performance monitoring
+
+Privacy policy link: [https://policies.google.com/privacy](https://policies.google.com/privacy)
+
+**QQ SDK**
+
+Third-party name: Tencent Technology
+
+Purpose: Login and sharing
+
+Privacy policy link: [https://privacy.qq.com/](https://privacy.qq.com/)
+
+**Mobile Push SDK**
+
+Third-party name: Tencent Computer Systems Co., Ltd. (Shenzhen)
+
+Purpose: Message push on mobile devices
+
+Personal information collected:
+
+1. Device information (phone model, system type, system version, etc.) for tag-based push and real-device identification, network information (network type) to support different push types, and app data (delivery, click, impression data generated during the push process) for push analytics.
+
+2. (Optional, depends on developer settings) Account binding information (depending on the selected push channel, QQ ID, WeChat Union ID, phone number, email, etc.) for account-based pushing.
+
+Data processing method: De-identification, encrypted transmission, and other security measures
+
+Official website: [https://cloud.tencent.com/product/tpns](https://cloud.tencent.com/product/tpns)
+
+Privacy policy: [https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727](https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727)
+
+**Huawei Push SDK**
+
+Third-party name: Huawei Software Technologies Co., Ltd.
+
+Purpose: Message push
+
+Personal information collected: App information and device information (device hardware info, basic system info, and system settings)
+
+Privacy policy: [https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177](https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177)
+
+**Meizu Push SDK**
+
+Third-party name: Zhuhai Meizu Communication Equipment Co., Ltd.
+
+Purpose: Provide real-time push notifications for Meizu devices, optimize push experience, and analytics.
+
+Personal information collected: Device-related information (phone brand, phone model, system version, system language, and device identifier PUSHID), app information, and push status
+
+Privacy policy: [https://open.flyme.cn/docs?id=236](https://open.flyme.cn/docs?id=236)
 
 ### Control of personal information
 Ham will disclose your personal information only when required by law or consistent with Ham service terms or software license agreements, or when there is sufficient reason to believe disclosure is necessary to:
@@ -39,7 +105,7 @@ Ham will disclose your personal information only when required by law or consist
 
 (c) protect Ham rights or property; and
 
-(d) protect the personal safety of Ham staff, Ham product or service users, or the public in emergencies.
+(d) protect the personal safety of Ham developers, Ham product or service users, or the public in emergencies.
 
 Ham will not share this information with third parties without permission, except for the situations listed in this statement.
 

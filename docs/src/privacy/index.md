@@ -1,5 +1,5 @@
 # 隐私政策
-（本协议修订于2022年7月16日，生效日期为2022年7月16日）
+（本协议修订于2026年2月3日，生效日期为2022年7月16日）
 
 Ham注重您个人隐私的保护。有时候我们需要某些信息才能为您提供您请求的服务，本隐私权声明解释了这些情况下的数据收集和使用情况。本隐私权声明适用于Ham应用产品的所有相关服务。
 
@@ -20,32 +20,92 @@ Ham不会收集您但个人信息，但为了提升应用的性能，或统计�
 
 隐私权政策链接：[https://lbs.amap.com/pages/privacy/](https://lbs.amap.com/pages/privacy/)
 
-<br/>
+**统一扫码服务**
 
-**友盟SDK**
+第三方名称：华为软件技术有限公司
 
-服务类型：统计分析，应用性能分析
+使用目的：扫码登录、分享
 
-收集个人信息类型：设备信息
+功能类型：扫码
 
-隐私权政策链接：[https://www.umeng.com/page/policy](https://www.umeng.com/page/policy)
+涉及个人信息：摄像头权限
 
+隐私权政策链接：[https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971](https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971)
 
+**远程配置**
 
+第三方名称：华为软件技术有限公司
 
+使用目的：远程配置
 
-  
+功能类型：远程配置
+
+隐私权政策链接：[https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207](https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207)
+
+**Google SDK**
+
+第三方名称：Google
+
+使用目的：设备性能监控
+
+隐私权政策链接：[https://policies.google.com/privacy](https://policies.google.com/privacy)
+
+**QQ SDK**
+
+第三方名称：腾讯科技
+
+使用目的：登录、分享
+
+隐私权政策链接：[https://privacy.qq.com/](https://privacy.qq.com/)
+
+**移动推送SDK**
+
+第三方名称：深圳市腾讯计算机系统有限公司
+
+使用目的：在移动终端设备进行消息推送
+
+收集个人信息类型：
+
+1. 设备信息(手机型号，系统类型、系统版本等)用于标签化推送以及识别是否是真机、网络信息(网络类型)支持根据不同网络类型进行不同类型推送、应用数据（推送流程中产生的送达、点击、曝光等数据）用于推送业务数据统计。
+
+2. （可选信息，依赖开发者设置）账号绑定信息(根据您所选用的不同推送渠道，QQ号、微信Union ID、 手机号、邮箱等)用于根据账号信息进行推送
+
+数据处理方式：通过去标识化、加密传输及其他安全方式
+
+官网：[https://cloud.tencent.com/product/tpns](https://cloud.tencent.com/product/tpns)
+
+隐私政策：[https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727](https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727)
+
+**华为推送 SDK**
+
+第三方名称：华为软件技术有限公司
+
+使用目的：用于消息推送
+
+收集个人信息类型：应用信息、设备信息（设备的硬件信息、系统基本信息和系统设置）
+
+隐私政策：[https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177](https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177)
+
+**魅族推送 SDK**
+
+第三方名称：珠海市魅族通讯设备有限公司
+
+使用目的：提供魅族手机实时消息推送、优化推送体验和统计分析。
+
+收集个人信息类型：设备相关信息（手机品牌、手机型号、系统版本、系统语言，以及设备标识符 PUSHID）和应用信息、推送状态
+
+隐私政策：[https://open.flyme.cn/docs?id=236](https://open.flyme.cn/docs?id=236)
 
 ### 控制个人信息
 Ham会在法律要求或符合Ham的相关服务条款、软件许可使用协议约定的情况下透露您的个人信息，或者有充分理由相信必须这样做才能：
 
 (a) 满足法律的明文规定，或者符合Ham本应用适用的法律程序；
 
-(b)符合Ham相关服务条款、软件许可使用协议的约定；
+(b) 符合Ham相关服务条款、软件许可使用协议的约定；
 
 (c) 保护Ham的权利或财产，以及
 
-(d) 在紧急情况下保护Ham员工、Ham产品或服务的用户或大众的个人安全。
+(d) 在紧急情况下保护Ham开发者、Ham产品或服务的用户或大众的个人安全。
 
 Ham不会未经允许将这些信息与第三方共享，本声明已经列出的情况除外。
 

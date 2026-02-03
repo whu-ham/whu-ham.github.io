@@ -13,6 +13,9 @@ hero:
     - theme: alt
       text: マニュアル
       link: /ja/handbook/
+    - theme: alt
+      text: フィードバック
+      link: https://github.com/whu-ham/whu-ham.github.io/discussions
 
 home: true
 heroText: Ham
