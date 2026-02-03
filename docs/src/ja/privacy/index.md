@@ -1,5 +1,5 @@
 # プライバシーポリシー
-（改定日：2022年7月16日、施行日：2022年7月16日）
+（改定日：2026年2月3日、施行日：2022年7月16日）
 
 Hamはお客様の個人情報の保護を重視しています。サービス提供のために必要な場合に限り、一定の情報をお願いすることがあります。本プライバシーポリシーは、そのような場合のデータ収集および利用について説明します。本ポリシーはHamアプリのすべての関連サービスに適用されます。
 
@@ -20,15 +20,81 @@ Hamはお客様の個人情報を収集しません。ただし、アプリの�
 
 プライバシーポリシーリンク：[https://lbs.amap.com/pages/privacy/](https://lbs.amap.com/pages/privacy/)
 
-<br/>
+**統一スキャンサービス**
 
-**友盟（UMeng）SDK**
+第三者名：華為ソフトウェア技術有限公司
 
-サービス種別：統計分析、アプリ性能分析
+利用目的：スキャンログイン、共有
 
-収集する個人情報：デバイス情報
+機能種別：QRコードスキャン
 
-プライバシーポリシーリンク：[https://www.umeng.com/page/policy](https://www.umeng.com/page/policy)
+関与する個人情報：カメラ権限
+
+プライバシーポリシーリンク：[https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971](https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971)
+
+**リモート設定**
+
+第三者名：華為ソフトウェア技術有限公司
+
+利用目的：リモート設定
+
+機能種別：リモート設定
+
+プライバシーポリシーリンク：[https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207](https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207)
+
+**Google SDK**
+
+第三者名：Google
+
+利用目的：端末性能モニタリング
+
+プライバシーポリシーリンク：[https://policies.google.com/privacy](https://policies.google.com/privacy)
+
+**QQ SDK**
+
+第三者名：腾讯科技
+
+利用目的：ログイン、共有
+
+プライバシーポリシーリンク：[https://privacy.qq.com/](https://privacy.qq.com/)
+
+**モバイルプッシュSDK**
+
+第三者名：深圳市腾讯計算機システム有限公司
+
+利用目的：モバイル端末でのメッセージ配信
+
+収集する個人情報：
+
+1. 端末情報（機種、OS種別、OSバージョン等）をタグ配信および実機識別に使用し、ネットワーク情報（回線種別）をネットワーク別配信に使用し、アプリデータ（配信・クリック・表示など配信フローで生成されるデータ）を配信統計に使用します。
+
+2. （任意、開発者設定に依存）アカウント連携情報（利用する配信チャネルにより、QQ番号、WeChat Union ID、電話番号、メールアドレス等）をアカウント別配信に使用します。
+
+データ処理方法：識別子の削除、暗号化伝送、その他の安全対策
+
+公式サイト：[https://cloud.tencent.com/product/tpns](https://cloud.tencent.com/product/tpns)
+
+プライバシーポリシー：[https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727](https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727)
+
+**Huawei Push SDK**
+
+第三者名：華為ソフトウェア技術有限公司
+
+利用目的：メッセージ配信
+
+収集する個人情報：アプリ情報、端末情報（端末のハードウェア情報、システム基本情報、システム設定）
+
+プライバシーポリシー：[https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177](https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177)
+
+**Meizu Push SDK**
+
+第三者名：珠海市魅族通信設備有限公司
+
+利用目的：魅族端末へのリアルタイム配信、配信体験の最適化、統計分析
+
+収集する個人情報：端末関連情報（ブランド、機種、OSバージョン、言語、端末識別子PUSHID）、アプリ情報、配信状態
+
+プライバシーポリシー：[https://open.flyme.cn/docs?id=236](https://open.flyme.cn/docs?id=236)
 
 ### 個人情報の管理
 Hamは、法律で要求される場合、またはHamの関連サービス規約・ソフトウェアライセンスに合致する場合に限り、お客様の個人情報を開示します。あるいは、以下のために開示が必要だと合理的に判断できる場合に限ります。
@@ -39,7 +105,7 @@ Hamは、法律で要求される場合、またはHamの関連サービス規�
 
 (c) Hamの権利または財産を保護するため
 
-(d) 緊急時にHamスタッフ、Ham製品またはサービスの利用者、あるいは公衆の安全を保護するため
+(d) 緊急時にHam開発者、Ham製品またはサービスの利用者、あるいは公衆の安全を保護するため
 
 本ポリシーに記載された場合を除き、Hamは許可なく個人情報を第三者と共有しません。
 
