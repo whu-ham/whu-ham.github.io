@@ -28,7 +28,7 @@ export default defineConfig([
     },
   },
   {
-    ignores: ['docs/.viteporess/cache'],
+    ignores: ['docs/.vitepress/cache', 'docs/.vitepress/dist', 'node_modules'],
   },
   eslintPluginPrettierRecommended,
 ]);

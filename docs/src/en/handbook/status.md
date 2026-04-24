@@ -13,8 +13,8 @@ Shows your courses for today or tomorrow.
 ### Schedule
 Shows the schedule items you added in Ham.
 
-### Shuttle
-Shows campus shuttle info for the nearest stop.
+### Campus Bus
+Shows campus bus info for the nearest stop.
 
 ### Sports
 Shows your booked sports venues.

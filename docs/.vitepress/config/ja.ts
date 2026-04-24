@@ -10,6 +10,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/ja/handbook/',
   },
   {
+    text: 'Connect',
+    link: '/ja/open-platform/',
+  },
+  {
     text: 'プライバシー',
     link: '/ja/privacy/',
   },
@@ -59,7 +63,7 @@ const sideBar: DefaultTheme.Sidebar = {
           link: 'schedule',
         },
         {
-          text: 'シャトル',
+          text: 'キャンパスバス',
           link: 'bus',
         },
         {
@@ -73,6 +77,23 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: 'フィードバック',
           link: 'bugfix',
+        },
+      ],
+    },
+  ],
+  '/ja/open-platform/': [
+    {
+      text: 'Connect',
+      collapsed: false,
+      base: '/ja/open-platform/',
+      items: [
+        {
+          text: '概要',
+          link: 'index',
+        },
+        {
+          text: '接続ガイド',
+          link: 'oauth2-guide',
         },
       ],
     },
@@ -98,13 +119,23 @@ const sideBar: DefaultTheme.Sidebar = {
 
 export const ja = defineConfig({
   lang: 'ja-JP',
+  title: 'Hamドキュメント',
   description: '',
   themeConfig: {
     nav: nav,
     sidebar: sideBar,
-    outlineTitle: 'このページの内容',
-    lastUpdatedText: '最終更新',
+    sidebarMenuLabel: 'メニュー',
+    darkModeSwitchLabel: '外観',
+    outline: {
+      label: 'このページの内容',
+    },
+    lastUpdated: {
+      text: '最終更新',
+    },
     returnToTopLabel: 'トップに戻る',
+    lightModeSwitchTitle: 'ライトモードに切り替え',
+    darkModeSwitchTitle: 'ダークモードに切り替え',
+    langMenuLabel: '言語を変更',
     editLink: {
       pattern:
         'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',

@@ -10,6 +10,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/en/handbook/',
   },
   {
+    text: 'Connect',
+    link: '/en/open-platform/',
+  },
+  {
     text: 'Privacy',
     link: '/en/privacy/',
   },
@@ -59,7 +63,7 @@ const sideBar: DefaultTheme.Sidebar = {
           link: 'schedule',
         },
         {
-          text: 'Shuttle',
+          text: 'Campus Bus',
           link: 'bus',
         },
         {
@@ -73,6 +77,23 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: 'Feedback',
           link: 'bugfix',
+        },
+      ],
+    },
+  ],
+  '/en/open-platform/': [
+    {
+      text: 'Connect',
+      collapsed: false,
+      base: '/en/open-platform/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+        {
+          text: 'Integration Guide',
+          link: 'oauth2-guide',
         },
       ],
     },
@@ -98,13 +119,23 @@ const sideBar: DefaultTheme.Sidebar = {
 
 export const en = defineConfig({
   lang: 'en-US',
+  title: 'Ham Docs',
   description: '',
   themeConfig: {
     nav: nav,
     sidebar: sideBar,
-    outlineTitle: 'On this page',
-    lastUpdatedText: 'Last updated',
+    sidebarMenuLabel: 'Menu',
+    darkModeSwitchLabel: 'Appearance',
+    outline: {
+      label: 'On this page',
+    },
+    lastUpdated: {
+      text: 'Last updated',
+    },
     returnToTopLabel: 'Return to top',
+    lightModeSwitchTitle: 'Switch to light theme',
+    darkModeSwitchTitle: 'Switch to dark theme',
+    langMenuLabel: 'Change language',
     editLink: {
       pattern:
         'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',

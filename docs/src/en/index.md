@@ -39,7 +39,7 @@ features:
     title: E-Card
     details: Open the E-Card quickly from your home screen
   - icon: 🚌
-    title: Shuttle
+    title: Campus Bus
     details: Check campus bus arrival info
   - icon: 📅
     title: Schedule
