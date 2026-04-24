@@ -10,6 +10,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/en/handbook/',
   },
   {
+    text: 'Connect',
+    link: '/en/open-platform/',
+  },
+  {
     text: 'Privacy',
     link: '/en/privacy/',
   },
@@ -77,6 +81,23 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
+  '/en/open-platform/': [
+    {
+      text: 'Connect',
+      collapsed: false,
+      base: '/en/open-platform/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+        {
+          text: 'Integration Guide',
+          link: 'oauth2-guide',
+        },
+      ],
+    },
+  ],
   '/en/privacy/': [
     {
       text: 'Privacy',
@@ -104,6 +125,7 @@ export const en = defineConfig({
     nav: nav,
     sidebar: sideBar,
     sidebarMenuLabel: 'Menu',
+    darkModeSwitchLabel: 'Appearance',
     outline: {
       label: 'On this page',
     },

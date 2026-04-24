@@ -43,5 +43,8 @@ export const shared = defineConfig({
         '@': path.resolve(__dirname, '../..'),
       },
     },
+    optimizeDeps: {
+      include: ['mermaid'],
+    },
   },
 });

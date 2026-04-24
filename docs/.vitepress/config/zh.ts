@@ -10,6 +10,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/handbook/',
   },
   {
+    text: '互联',
+    link: '/open-platform/',
+  },
+  {
     text: '协议',
     link: '/privacy/',
   },
@@ -77,6 +81,23 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
+  '/open-platform/': [
+    {
+      text: '互联',
+      collapsed: false,
+      base: '/open-platform/',
+      items: [
+        {
+          text: '概述',
+          link: 'index',
+        },
+        {
+          text: '接入指南',
+          link: 'oauth2-guide',
+        },
+      ],
+    },
+  ],
   '/privacy/': [
     {
       text: '协议',
@@ -103,6 +124,7 @@ export const zh = defineConfig({
     nav: nav,
     sidebar: sideBar,
     sidebarMenuLabel: '菜单',
+    darkModeSwitchLabel: '外观',
     outline: {
       label: '本页目录',
     },

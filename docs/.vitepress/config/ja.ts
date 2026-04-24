@@ -10,6 +10,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/ja/handbook/',
   },
   {
+    text: 'Connect',
+    link: '/ja/open-platform/',
+  },
+  {
     text: 'プライバシー',
     link: '/ja/privacy/',
   },
@@ -77,6 +81,23 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
+  '/ja/open-platform/': [
+    {
+      text: 'Connect',
+      collapsed: false,
+      base: '/ja/open-platform/',
+      items: [
+        {
+          text: '概要',
+          link: 'index',
+        },
+        {
+          text: '接続ガイド',
+          link: 'oauth2-guide',
+        },
+      ],
+    },
+  ],
   '/ja/privacy/': [
     {
       text: 'プライバシー',
@@ -104,6 +125,7 @@ export const ja = defineConfig({
     nav: nav,
     sidebar: sideBar,
     sidebarMenuLabel: 'メニュー',
+    darkModeSwitchLabel: '外観',
     outline: {
       label: 'このページの内容',
     },
