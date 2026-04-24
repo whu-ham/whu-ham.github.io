@@ -5,7 +5,7 @@ import {zhSearch} from './zh';
 import * as path from 'node:path';
 
 export const shared = defineConfig({
-  title: 'Ham',
+  title: 'Ham文档',
   lastUpdated: true,
   srcDir: 'src',
   base: '/',
@@ -17,11 +17,8 @@ export const shared = defineConfig({
         src: 'https://www.googletagmanager.com/gtag/js?id=G-P03RPXXGT4',
       },
     ],
-    ['link', {rel: 'icon', href: 'icon-1024 2.png'}],
-    [
-      'link',
-      {rel: 'manifest', href: 'https://whu-ham.github.io/manifest.webmanifest'},
-    ],
+    ['link', {rel: 'icon', href: '/icon.png'}],
+    ['link', {rel: 'manifest', href: '/manifest.webmanifest'}],
   ],
   themeConfig: {
     logo: '/icon-1024 2.png',

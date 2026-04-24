@@ -59,7 +59,7 @@ const sideBar: DefaultTheme.Sidebar = {
           link: 'schedule',
         },
         {
-          text: 'シャトル',
+          text: 'キャンパスバス',
           link: 'bus',
         },
         {
@@ -98,13 +98,22 @@ const sideBar: DefaultTheme.Sidebar = {
 
 export const ja = defineConfig({
   lang: 'ja-JP',
+  title: 'Hamドキュメント',
   description: '',
   themeConfig: {
     nav: nav,
     sidebar: sideBar,
-    outlineTitle: 'このページの内容',
-    lastUpdatedText: '最終更新',
+    sidebarMenuLabel: 'メニュー',
+    outline: {
+      label: 'このページの内容',
+    },
+    lastUpdated: {
+      text: '最終更新',
+    },
     returnToTopLabel: 'トップに戻る',
+    lightModeSwitchTitle: 'ライトモードに切り替え',
+    darkModeSwitchTitle: 'ダークモードに切り替え',
+    langMenuLabel: '言語を変更',
     editLink: {
       pattern:
         'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',

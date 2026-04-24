@@ -39,7 +39,7 @@ features:
     title: Eカード
     details: ホーム画面からEカードを素早く起動
   - icon: 🚌
-    title: シャトル
+    title: キャンパスバス
     details: バスの到着情報を確認
   - icon: 📅
     title: 予定

@@ -102,9 +102,17 @@ export const zh = defineConfig({
   themeConfig: {
     nav: nav,
     sidebar: sideBar,
-    outlineTitle: '本页目录',
-    lastUpdatedText: '最近更新',
+    sidebarMenuLabel: '菜单',
+    outline: {
+      label: '本页目录',
+    },
+    lastUpdated: {
+      text: '最近更新',
+    },
     returnToTopLabel: '返回顶部',
+    lightModeSwitchTitle: '切换到浅色主题',
+    darkModeSwitchTitle: '切换到深色主题',
+    langMenuLabel: '切换语言',
     editLink: {
       pattern:
         'https://github.com/whu-ham/whu-ham.github.io/edit/main/docs/src/:path',
