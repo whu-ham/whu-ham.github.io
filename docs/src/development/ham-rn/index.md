@@ -7,9 +7,9 @@ next:
   link: '/development/ham-rn/cas'
 ---
 
-# ham-rn
+# Ham React Native组件
 
-[ham-rn](https://github.com/whu-ham/ham-rn) 是 Ham 应用的 React Native 组件仓库，以 OTA（Over-The-Air）热更新的方式集成到 iOS / Android 原生应用中。它负责 CAS 统一身份认证、教务系统相关功能（课程查询、成绩查询）、绩点计算等功能的 UI 渲染与业务逻辑处理。
+[Ham React Native组件](https://github.com/whu-ham/ham-rn) 是 Ham 应用的 React Native 组件仓库，以 OTA（Over-The-Air）热更新的方式集成到 iOS / Android 原生应用中。它负责 CAS 统一身份认证、教务系统相关功能（课程查询、成绩查询）、绩点计算等功能的 UI 渲染与业务逻辑处理。
 
 ## 技术栈
 
@@ -70,7 +70,7 @@ src/
 
 ## 模块概览
 
-ham-rn 包含以下核心模块，点击查看各模块的详细文档：
+Ham React Native组件包含以下核心模块，点击查看各模块的详细文档：
 
 | 模块 | 用户操作入口 | 说明 |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ ham-rn 包含以下核心模块，点击查看各模块的详细文档：
 
 ### 原生模块声明
 
-ham-rn 使用 React Native Turbo Modules 与原生端通信。以下是各模块的用途：
+Ham React Native组件使用 React Native Turbo Modules 与原生端通信。以下是各模块的用途：
 
 | 模块 | 说明 |
 | --- | --- |
@@ -98,7 +98,7 @@ ham-rn 使用 React Native Turbo Modules 与原生端通信。以下是各模块
 | `NativeScoreCalcModule` | 绩点计算脚本管理：获取当前计算方式（`getCurrentCalc`）、选择计算方式（`selectCalc`）、查看详情（`openDetail`）、测试脚本（`testItem`）、监听计算方式变更事件（`onSetScoreJsCalcItem`） |
 | `NativeLog` | 日志输出：信息日志（`i(tag, message)`）、错误日志（`e(tag, message)`） |
 
-ham-rn 仅包含 TypeScript 侧的接口声明（Turbo Module Spec），原生模块的具体实现位于 iOS / Android 原生工程中。
+Ham React Native组件仅包含 TypeScript 侧的接口声明（Turbo Module Spec），原生模块的具体实现位于 iOS / Android 原生工程中。
 
 ### 国际化
 
@@ -121,4 +121,4 @@ GitHub Actions 在 PR 和推送到 `main` 分支时自动运行：
 
 ## 许可证
 
-ham-rn 采用 [MIT 许可证](https://opensource.org/licenses/MIT)。
+Ham React Native组件采用 [MIT 许可证](https://opensource.org/licenses/MIT)。

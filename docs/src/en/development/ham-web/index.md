@@ -7,15 +7,15 @@ next:
   link: '/en/development/ham-web/sso-authorize'
 ---
 
-# ham-web
+# Ham Web
 
-[ham-web](https://github.com/whu-ham/ham-web) is the web frontend for Ham, primarily serving the SSO single sign-on authorization flow and acting as the web entry point for the Ham Connect platform.
+[Ham Web](https://github.com/whu-ham/ham-web) is the web frontend for Ham, primarily serving the SSO single sign-on authorization flow and acting as the web entry point for the Ham Connect platform.
 
 ## Where It Is Used
 
-Once deployed, ham-web serves as the web service endpoint for the Ham Connect platform. It is used in the following scenarios:
+Once deployed, Ham Web serves as the web service endpoint for the Ham Connect platform. It is used in the following scenarios:
 
-- **SSO Authorization Page** — When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to ham-web's authorization page for login and consent confirmation
+- **SSO Authorization Page** — When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to Ham Web's authorization page for login and consent confirmation
 - **QR Code Login** — Users can log in on the web by scanning a QR code with the Ham app
 - **Passkey Login** — Supports WebAuthn / Passkey passwordless login
 - **Mobile H5 Fallback** — When users don't have the Ham native app installed, provides a web-based install prompt and Passkey login option
@@ -89,7 +89,7 @@ Use `next-intl` for internationalization. When adding new strings, update all th
 
 ### API Routes
 
-ham-web's API routes act as a backend proxy, forwarding requests to the Ham backend service:
+Ham Web's API routes act as a backend proxy, forwarding requests to the Ham backend service:
 
 - `/api/auth/*` — Authentication (login, logout, token refresh, passkey, QR code)
 - `/api/sso/*` — SSO authorization (consent info query, consent confirmation)
@@ -113,4 +113,4 @@ All contributors must follow these rules:
 
 ## License
 
-ham-web is [MIT licensed](https://opensource.org/licenses/MIT).
+Ham Web is [MIT licensed](https://opensource.org/licenses/MIT).

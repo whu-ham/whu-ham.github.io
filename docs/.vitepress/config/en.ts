@@ -143,7 +143,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: 'ham-web',
+      text: 'Ham Web',
       collapsed: false,
       base: '/en/development/ham-web/',
       items: [
@@ -158,7 +158,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: 'ham-rn',
+      text: 'Ham React Native Components',
       collapsed: false,
       base: '/en/development/ham-rn/',
       items: [

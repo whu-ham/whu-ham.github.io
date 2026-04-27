@@ -1,71 +1,63 @@
-<p align="center"><img src="./docs/src/public/icon-1024 2.png" width="18%" alt="Ham的Logo"/></p>
+<p align="center"><img src="./docs/src/public/icon-1024 2.png" width="18%" style="border-radius: 22%;" alt="Ham Logo"/></p>
 
 <div align="center">
 <h1>Ham</h1>
-<span>查询课表、成绩、预定运动场馆、预约武汉大学图书馆</span><br><br>
-<a href="https://txc.qq.com/products/606034"><img alt="Static Badge" src="https://img.shields.io/badge/Feedback_On-%E5%85%94%E5%B0%8F%E5%B7%A2-2378ff"></a>
-</div><br>
+<p>武汉大学校园生活助手 — 课表查询 · 成绩计算 · 图书馆预约 · 运动场馆预定</p>
 
-### 文档
+<a href="https://docs.ham.nowcent.cn"><img alt="文档" src="https://img.shields.io/badge/文档-docs.ham.nowcent.cn-blue"></a>
+<a href="https://github.com/whu-ham/whu-ham.github.io/discussions"><img alt="讨论" src="https://img.shields.io/badge/讨论-GitHub_Discussions-green"></a>
+<a href="https://txc.qq.com/products/606034"><img alt="反馈" src="https://img.shields.io/badge/反馈-兔小巢-2378ff"></a>
+</div>
 
-需要获取使用帮助请[前往文档主页](https://whu-ham.github.io)
+## 简介
 
-### 下载安装
+本仓库是 **Ham 文档站** 的源码，基于 [VitePress](https://vitepress.dev/) 构建，支持中文、英文、日文三种语言。
 
-[前往下载地址(Android / iOS)](https://whu-ham.github.io)
+文档站地址：**<https://docs.ham.nowcent.cn>**
 
-### 它能做什么
+## 本地开发
 
-#### 课程表
+```bash
+# 安装依赖
+pnpm install
 
-- 导入武汉大学课程表
-- 自定义课程
-- 课程提醒
+# 启动开发服务器
+pnpm docs:dev
 
-#### 成绩
+# 构建静态站点
+pnpm docs:build
 
-- 查询成绩、计算GPA、综测成绩
-- 还没有啥数据的查给分
+# 预览构建产物
+pnpm docs:preview
+```
 
-#### 图书馆
+## 目录结构
 
-- 按照条件筛选、预约图书馆
-- 每日自动预约图书馆
-- 更改图书馆预约时间
+```
+docs/
+├── .vitepress/          # VitePress 配置
+│   └── config/          # 多语言配置（zh / en / ja）
+└── src/                 # 文档源文件
+    ├── development/     # 开发文档
+    ├── download/        # 下载页
+    ├── handbook/        # 使用手册
+    ├── open-platform/   # 开放平台
+    ├── en/              # 英文文档
+    └── ja/              # 日文文档
+```
 
-#### 体育场馆预定
+## 相关项目
 
-- 预约体育场馆(可使用Siri捷径)
+| 项目 | 说明 | 链接 |
+|------|------|------|
+| **Ham React Native组件** | React Native 组件仓库，以 OTA 热更新集成到原生应用 | [GitHub](https://github.com/whu-ham/ham-rn) |
+| **Ham Web** | Web 前端，SSO 单点登录授权 | [GitHub](https://github.com/whu-ham/ham-web) |
+| **成绩计算脚本** | 社区贡献的绩点计算脚本 | [GitHub](https://github.com/whu-ham/ham-score-calculator) |
 
-#### E卡，校巴
+## 参与贡献
 
-- 快速打开E卡，查看校园巴士到站情况
+欢迎提交 Issue 和 Pull Request 来帮助完善文档。
 
-#### 日程
+## 许可证
 
-- 记录你的日程信息
-
-#### 其它
-
-- 课程表、图书馆预约小组件支持
-
-### 它安全吗
-
-放心，Ham并不会将你的学号密码发送到服务器验证。你的账户信息仅保存在本地，你的手机将直接从学校服务器获取数据，而不会通过第三方转发。
-
-当然了，Ham有查给分等功能，需要用到后台服务器。但请放心，Ham在传输你的信息时，务必通过你的同意。而且Ham不会直接传输关键信息（学号、密码等）。你的关键信息（学号等）在进行哈希运算后再传输至服务器，这样我在后台也不知道是谁的成绩。
-
-### 它开源吗
-
-主项目暂不开源，因为：
-
-1. 项目里存在开发者密钥等一些敏感信息
-2. 有些代码关乎后台接口安全
-3. 技术债太多了，很多代码质量远达不到开源项目的标准
-
-暂时/已经开源的子项目：
-1. [成绩计算](https://github.com/whu-ham/ham-score-calculator)(成绩 -> 设置 -> 选择计算方式里的数据来源)
-2. [ham-rn](https://github.com/whu-ham/ham-rn)(APP里用到的ReactNative组件大仓)
-3. [ham-web](https://github.com/whu-ham/ham-web)(Ham for Web)
-
-目前有计划模块化/重构APP里的部分功能，并开源这些模块（如果时间充足），期待下吧:->
+本项目采用 [MIT](./LICENSE) 许可证。

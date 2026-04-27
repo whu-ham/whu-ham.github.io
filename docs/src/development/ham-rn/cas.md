@@ -10,7 +10,7 @@
 
 ## 功能说明
 
-CAS（Central Authentication Service）是学校的统一身份认证系统。ham-rn 的 CAS 模块负责：
+CAS（Central Authentication Service）是学校的统一身份认证系统。Ham React Native组件的 CAS 模块负责：
 
 1. 通过 WebView 加载学校 CAS 登录页面
 2. 注入自定义 JavaScript 脚本，实现登录表单的本地化（多语言适配）

@@ -2,7 +2,7 @@
 
 ## User Entry Point
 
-When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to ham-web's `/sso-authorize` page.
+When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to Ham Web's `/sso-authorize` page.
 
 The page behavior depends on the user's device and login status:
 
@@ -83,7 +83,7 @@ stateDiagram-v2
 sequenceDiagram
     participant ThirdParty as Third-party App
     participant Browser as Browser
-    participant HamWeb as ham-web
+    participant HamWeb as Ham Web
     participant HamBackend as Ham Backend
     participant HamApp as Ham Native App
 
