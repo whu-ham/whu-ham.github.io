@@ -1,10 +1,10 @@
 ---
 prev:
   text: 'Development Overview'
-  link: '/en/development/'
+  link: '/en/developers/'
 next:
   text: 'Integration Guide'
-  link: '/en/development/open-platform/oauth2-guide'
+  link: '/en/developers/open-platform/oauth2-guide'
 ---
 
 # Ham Connect

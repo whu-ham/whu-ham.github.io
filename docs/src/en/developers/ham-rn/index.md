@@ -1,10 +1,10 @@
 ---
 prev:
   text: 'SSO OAuth2 Authorization'
-  link: '/en/development/ham-web/sso-authorize'
+  link: '/en/developers/ham-web/sso-authorize'
 next:
   text: 'CAS Authentication'
-  link: '/en/development/ham-rn/cas'
+  link: '/en/developers/ham-rn/cas'
 ---
 
 # Ham React Native Components

@@ -1,10 +1,10 @@
 ---
 prev:
   text: 'Ham互联概述'
-  link: '/development/open-platform/'
+  link: '/developers/open-platform/'
 next:
   text: 'Ham Web 概述'
-  link: '/development/ham-web/'
+  link: '/developers/ham-web/'
 ---
 
 # 接入指南

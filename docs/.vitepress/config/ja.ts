@@ -11,7 +11,7 @@ const nav: DefaultTheme.NavItem[] = [
   },
   {
     text: '開発者',
-    link: '/ja/development/',
+    link: '/ja/developers/',
   },
   {
     text: 'プライバシー',
@@ -99,11 +99,11 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/ja/development/': [
+  '/ja/developers/': [
     {
-      text: '開発',
+      text: '開発者',
       collapsed: false,
-      base: '/ja/development/',
+      base: '/ja/developers/',
       items: [
         {
           text: '概要',
@@ -114,7 +114,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Connect',
       collapsed: false,
-      base: '/ja/development/open-platform/',
+      base: '/ja/developers/open-platform/',
       items: [
         {
           text: '概要',
@@ -129,7 +129,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Web',
       collapsed: false,
-      base: '/ja/development/ham-web/',
+      base: '/ja/developers/ham-web/',
       items: [
         {
           text: '概要',
@@ -144,7 +144,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham React Nativeコンポーネント',
       collapsed: false,
-      base: '/ja/development/ham-rn/',
+      base: '/ja/developers/ham-rn/',
       items: [
         {
           text: '概要',

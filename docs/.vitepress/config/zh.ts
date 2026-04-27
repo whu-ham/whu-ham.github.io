@@ -11,7 +11,7 @@ const nav: DefaultTheme.NavItem[] = [
   },
   {
     text: '开发者',
-    link: '/development/',
+    link: '/developers/',
   },
   {
     text: '协议',
@@ -99,11 +99,11 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/development/': [
+  '/developers/': [
     {
-      text: '开发',
+      text: '开发者',
       collapsed: false,
-      base: '/development/',
+      base: '/developers/',
       items: [
         {
           text: '概述',
@@ -114,7 +114,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham互联',
       collapsed: false,
-      base: '/development/open-platform/',
+      base: '/developers/open-platform/',
       items: [
         {
           text: '概述',
@@ -129,7 +129,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Web',
       collapsed: false,
-      base: '/development/ham-web/',
+      base: '/developers/ham-web/',
       items: [
         {
           text: '概述',
@@ -144,7 +144,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham React Native组件',
       collapsed: false,
-      base: '/development/ham-rn/',
+      base: '/developers/ham-rn/',
       items: [
         {
           text: '概述',

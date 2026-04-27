@@ -1,10 +1,10 @@
 ---
 prev:
   text: '开发概述'
-  link: '/development/'
+  link: '/developers/'
 next:
   text: '接入指南'
-  link: '/development/open-platform/oauth2-guide'
+  link: '/developers/open-platform/oauth2-guide'
 ---
 
 # Ham互联

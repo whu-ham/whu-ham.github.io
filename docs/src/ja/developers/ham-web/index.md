@@ -1,10 +1,10 @@
 ---
 prev:
   text: '接続ガイド'
-  link: '/ja/development/open-platform/oauth2-guide'
+  link: '/ja/developers/open-platform/oauth2-guide'
 next:
   text: 'SSO OAuth2 認証'
-  link: '/ja/development/ham-web/sso-authorize'
+  link: '/ja/developers/ham-web/sso-authorize'
 ---
 
 # Ham Web

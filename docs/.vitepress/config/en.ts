@@ -11,7 +11,7 @@ const nav: DefaultTheme.NavItem[] = [
   },
   {
     text: 'Developers',
-    link: '/en/development/',
+    link: '/en/developers/',
   },
   {
     text: 'Privacy',
@@ -99,11 +99,11 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/en/development/': [
+  '/en/developers/': [
     {
-      text: 'Development',
+      text: 'Developers',
       collapsed: false,
-      base: '/en/development/',
+      base: '/en/developers/',
       items: [
         {
           text: 'Overview',
@@ -114,7 +114,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Connect',
       collapsed: false,
-      base: '/en/development/open-platform/',
+      base: '/en/developers/open-platform/',
       items: [
         {
           text: 'Overview',
@@ -129,7 +129,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Web',
       collapsed: false,
-      base: '/en/development/ham-web/',
+      base: '/en/developers/ham-web/',
       items: [
         {
           text: 'Overview',
@@ -144,7 +144,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham React Native Components',
       collapsed: false,
-      base: '/en/development/ham-rn/',
+      base: '/en/developers/ham-rn/',
       items: [
         {
           text: 'Overview',
