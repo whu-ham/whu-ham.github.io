@@ -10,11 +10,7 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/ja/handbook/',
   },
   {
-    text: 'Connect',
-    link: '/ja/open-platform/',
-  },
-  {
-    text: '開発',
+    text: '開発者',
     link: '/ja/development/',
   },
   {
@@ -87,7 +83,7 @@ const sideBar: DefaultTheme.Sidebar = {
   ],
   '/ja/open-platform/': [
     {
-      text: 'Connect',
+      text: 'Ham Connect',
       collapsed: false,
       base: '/ja/open-platform/',
       items: [
@@ -128,6 +124,21 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: '概要',
           link: 'index',
+        },
+      ],
+    },
+    {
+      text: 'Ham Connect',
+      collapsed: false,
+      base: '/ja/open-platform/',
+      items: [
+        {
+          text: '概要',
+          link: 'index',
+        },
+        {
+          text: '接続ガイド',
+          link: 'oauth2-guide',
         },
       ],
     },

@@ -10,11 +10,7 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/en/handbook/',
   },
   {
-    text: 'Connect',
-    link: '/en/open-platform/',
-  },
-  {
-    text: 'Development',
+    text: 'Developers',
     link: '/en/development/',
   },
   {
@@ -87,7 +83,7 @@ const sideBar: DefaultTheme.Sidebar = {
   ],
   '/en/open-platform/': [
     {
-      text: 'Connect',
+      text: 'Ham Connect',
       collapsed: false,
       base: '/en/open-platform/',
       items: [
@@ -128,6 +124,21 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: 'Overview',
           link: 'index',
+        },
+      ],
+    },
+    {
+      text: 'Ham Connect',
+      collapsed: false,
+      base: '/en/open-platform/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+        {
+          text: 'Integration Guide',
+          link: 'oauth2-guide',
         },
       ],
     },

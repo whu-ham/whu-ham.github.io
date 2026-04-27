@@ -2,7 +2,7 @@
 layout: home
 hero:
   name: Ham
-  tagline: マニュアルと規約
+  tagline: ドキュメント
   image:
     src: ../images/icons/android-chrome-192x192.png
     alt: Ham-Logo

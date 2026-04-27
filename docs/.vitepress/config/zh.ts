@@ -10,11 +10,7 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/handbook/',
   },
   {
-    text: '互联',
-    link: '/open-platform/',
-  },
-  {
-    text: '开发',
+    text: '开发者',
     link: '/development/',
   },
   {
@@ -87,7 +83,7 @@ const sideBar: DefaultTheme.Sidebar = {
   ],
   '/open-platform/': [
     {
-      text: '互联',
+      text: 'Ham互联',
       collapsed: false,
       base: '/open-platform/',
       items: [
@@ -128,6 +124,21 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: '概述',
           link: 'index',
+        },
+      ],
+    },
+    {
+      text: 'Ham互联',
+      collapsed: false,
+      base: '/open-platform/',
+      items: [
+        {
+          text: '概述',
+          link: 'index',
+        },
+        {
+          text: '接入指南',
+          link: 'oauth2-guide',
         },
       ],
     },
