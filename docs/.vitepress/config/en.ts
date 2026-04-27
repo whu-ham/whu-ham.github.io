@@ -14,6 +14,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/en/open-platform/',
   },
   {
+    text: 'Development',
+    link: '/en/development/',
+  },
+  {
     text: 'Privacy',
     link: '/en/privacy/',
   },
@@ -111,6 +115,57 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: 'User Agreement',
           link: 'user-policy',
+        },
+      ],
+    },
+  ],
+  '/en/development/': [
+    {
+      text: 'Development',
+      collapsed: false,
+      base: '/en/development/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+      ],
+    },
+    {
+      text: 'ham-web',
+      collapsed: false,
+      base: '/en/development/ham-web/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+        {
+          text: 'SSO OAuth2 Authorization',
+          link: 'sso-authorize',
+        },
+      ],
+    },
+    {
+      text: 'ham-rn',
+      collapsed: false,
+      base: '/en/development/ham-rn/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+        {
+          text: 'CAS Authentication',
+          link: 'cas',
+        },
+        {
+          text: 'Education Module',
+          link: 'education',
+        },
+        {
+          text: 'Score Calculator',
+          link: 'score-calc',
         },
       ],
     },

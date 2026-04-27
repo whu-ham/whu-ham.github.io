@@ -1,3 +1,9 @@
+---
+next:
+  text: '接入指南'
+  link: '/open-platform/oauth2-guide'
+---
+
 # Ham互联
 
 Ham互联是Ham开放平台提供的OAuth 2.0授权服务，允许第三方应用安全地获取Ham用户的授权信息。

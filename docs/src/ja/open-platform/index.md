@@ -1,3 +1,9 @@
+---
+next:
+  text: '接続ガイド'
+  link: '/ja/open-platform/oauth2-guide'
+---
+
 # Ham Connect
 
 Ham Connectは、Hamオープンプラットフォームが提供するOAuth 2.0認可サービスで、サードパーティアプリケーションがHamユーザーの認可情報を安全に取得できるようにします。
