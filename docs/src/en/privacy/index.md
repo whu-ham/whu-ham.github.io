@@ -1,3 +1,9 @@
+---
+next:
+  text: 'User Agreement'
+  link: '/en/privacy/user-policy'
+---
+
 # Privacy Policy
 (Revision date: February 3, 2026; Effective date: July 16, 2022)
 

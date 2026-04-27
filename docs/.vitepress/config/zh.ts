@@ -14,6 +14,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/open-platform/',
   },
   {
+    text: '开发',
+    link: '/development/',
+  },
+  {
     text: '协议',
     link: '/privacy/',
   },
@@ -111,6 +115,57 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: '用户协议',
           link: 'user-policy',
+        },
+      ],
+    },
+  ],
+  '/development/': [
+    {
+      text: '开发',
+      collapsed: false,
+      base: '/development/',
+      items: [
+        {
+          text: '概述',
+          link: 'index',
+        },
+      ],
+    },
+    {
+      text: 'ham-web',
+      collapsed: false,
+      base: '/development/ham-web/',
+      items: [
+        {
+          text: '概述',
+          link: 'index',
+        },
+        {
+          text: 'SSO OAuth2 授权',
+          link: 'sso-authorize',
+        },
+      ],
+    },
+    {
+      text: 'ham-rn',
+      collapsed: false,
+      base: '/development/ham-rn/',
+      items: [
+        {
+          text: '概述',
+          link: 'index',
+        },
+        {
+          text: 'CAS 认证',
+          link: 'cas',
+        },
+        {
+          text: '教务模块',
+          link: 'education',
+        },
+        {
+          text: '绩点计算',
+          link: 'score-calc',
         },
       ],
     },

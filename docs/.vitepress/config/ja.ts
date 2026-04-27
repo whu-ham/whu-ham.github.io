@@ -14,6 +14,10 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/ja/open-platform/',
   },
   {
+    text: '開発',
+    link: '/ja/development/',
+  },
+  {
     text: 'プライバシー',
     link: '/ja/privacy/',
   },
@@ -111,6 +115,57 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: '利用規約',
           link: 'user-policy',
+        },
+      ],
+    },
+  ],
+  '/ja/development/': [
+    {
+      text: '開発',
+      collapsed: false,
+      base: '/ja/development/',
+      items: [
+        {
+          text: '概要',
+          link: 'index',
+        },
+      ],
+    },
+    {
+      text: 'ham-web',
+      collapsed: false,
+      base: '/ja/development/ham-web/',
+      items: [
+        {
+          text: '概要',
+          link: 'index',
+        },
+        {
+          text: 'SSO OAuth2 認証',
+          link: 'sso-authorize',
+        },
+      ],
+    },
+    {
+      text: 'ham-rn',
+      collapsed: false,
+      base: '/ja/development/ham-rn/',
+      items: [
+        {
+          text: '概要',
+          link: 'index',
+        },
+        {
+          text: 'CAS 認証',
+          link: 'cas',
+        },
+        {
+          text: '教務モジュール',
+          link: 'education',
+        },
+        {
+          text: 'GPA 計算',
+          link: 'score-calc',
         },
       ],
     },

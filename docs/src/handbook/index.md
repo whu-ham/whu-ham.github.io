@@ -1,3 +1,9 @@
+---
+next:
+  text: '状态'
+  link: '/handbook/status'
+---
+
 # 简介
 欢迎使用Ham！
 
