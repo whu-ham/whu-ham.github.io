@@ -1,10 +1,10 @@
 ---
 prev:
   text: 'SSO OAuth2 授权'
-  link: '/development/ham-web/sso-authorize'
+  link: '/developers/ham-web/sso-authorize'
 next:
   text: 'CAS 认证'
-  link: '/development/ham-rn/cas'
+  link: '/developers/ham-rn/cas'
 ---
 
 # Ham React Native组件

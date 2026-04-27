@@ -1,10 +1,10 @@
 ---
 prev:
   text: 'SSO OAuth2 認証'
-  link: '/ja/development/ham-web/sso-authorize'
+  link: '/ja/developers/ham-web/sso-authorize'
 next:
   text: 'CAS 認証'
-  link: '/ja/development/ham-rn/cas'
+  link: '/ja/developers/ham-rn/cas'
 ---
 
 # Ham React Nativeコンポーネント

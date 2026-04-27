@@ -1,18 +1,18 @@
 ---
 next:
   text: 'Ham Connect Overview'
-  link: '/en/development/open-platform/'
+  link: '/en/developers/open-platform/'
 ---
 
-# Development
+# Developers
 
-Welcome to the Ham open-source project development documentation! Ham currently has the following open-source projects:
+Welcome to the Ham developer documentation! Ham currently includes the following projects:
 
 | Project | Description | Repository |
 | --- | --- | --- |
-| [Ham Connect](/en/development/open-platform/) | Open platform OAuth 2.0 authorization service | — |
-| [Ham Web](/en/development/ham-web/) | Web frontend for SSO authorization and more | [GitHub](https://github.com/whu-ham/ham-web) |
-| [Ham React Native Components](/en/development/ham-rn/) | React Native component repository, integrated into native apps via OTA hot updates | [GitHub](https://github.com/whu-ham/ham-rn) |
+| [Ham Connect](/en/developers/open-platform/) | Open platform OAuth 2.0 authorization service | — |
+| [Ham Web](/en/developers/ham-web/) | Web frontend for SSO authorization and more | [GitHub](https://github.com/whu-ham/ham-web) |
+| [Ham React Native Components](/en/developers/ham-rn/) | React Native component repository, integrated into native apps via OTA hot updates | [GitHub](https://github.com/whu-ham/ham-rn) |
 
 ## Overview
 
@@ -24,4 +24,4 @@ Welcome to the Ham open-source project development documentation! Ham currently 
 
 ## Contributing
 
-All projects are licensed under the [MIT License](https://opensource.org/licenses/MIT). Community contributions are welcome. Please read each project's contributing guide before submitting a PR.
+Open-source projects are licensed under the [MIT License](https://opensource.org/licenses/MIT). Community contributions are welcome. Please read each project's contributing guide before submitting a PR.

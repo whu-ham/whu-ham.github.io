@@ -1,10 +1,10 @@
 ---
 prev:
   text: '接入指南'
-  link: '/development/open-platform/oauth2-guide'
+  link: '/developers/open-platform/oauth2-guide'
 next:
   text: 'SSO OAuth2 授权'
-  link: '/development/ham-web/sso-authorize'
+  link: '/developers/ham-web/sso-authorize'
 ---
 
 # Ham Web

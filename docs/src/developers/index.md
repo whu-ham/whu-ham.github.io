@@ -1,18 +1,18 @@
 ---
 next:
   text: 'Ham互联概述'
-  link: '/development/open-platform/'
+  link: '/developers/open-platform/'
 ---
 
-# 开发
+# 开发者
 
-欢迎来到 Ham 开源项目的开发文档！Ham 目前已开源以下项目：
+欢迎来到 Ham 开发者文档！Ham 目前包含以下项目：
 
 | 项目 | 说明 | 仓库 |
 | --- | --- | --- |
-| [Ham互联](/development/open-platform/) | 开放平台 OAuth 2.0 授权服务 | — |
-| [Ham Web](/development/ham-web/) | Web 前端，SSO 单点登录授权 | [GitHub](https://github.com/whu-ham/ham-web) |
-| [Ham React Native组件](/development/ham-rn/) | React Native 组件仓库，以 OTA 热更新集成到原生应用 | [GitHub](https://github.com/whu-ham/ham-rn) |
+| [Ham互联](/developers/open-platform/) | 开放平台 OAuth 2.0 授权服务 | — |
+| [Ham Web](/developers/ham-web/) | Web 前端，SSO 单点登录授权 | [GitHub](https://github.com/whu-ham/ham-web) |
+| [Ham React Native组件](/developers/ham-rn/) | React Native 组件仓库，以 OTA 热更新集成到原生应用 | [GitHub](https://github.com/whu-ham/ham-rn) |
 
 ## 项目概览
 
@@ -24,4 +24,4 @@ next:
 
 ## 参与贡献
 
-所有项目均采用 [MIT 许可证](https://opensource.org/licenses/MIT)，欢迎社区贡献。请在提交 PR 前阅读各项目的贡献指南。
+开源项目均采用 [MIT 许可证](https://opensource.org/licenses/MIT)，欢迎社区贡献。请在提交 PR 前阅读各项目的贡献指南。

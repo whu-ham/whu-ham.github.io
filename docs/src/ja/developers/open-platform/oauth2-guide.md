@@ -1,10 +1,10 @@
 ---
 prev:
   text: 'Ham Connect 概要'
-  link: '/ja/development/open-platform/'
+  link: '/ja/developers/open-platform/'
 next:
   text: 'Ham Web 概要'
-  link: '/ja/development/ham-web/'
+  link: '/ja/developers/ham-web/'
 ---
 
 # OAuth 2.0 完全接続ガイド
