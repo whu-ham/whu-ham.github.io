@@ -1,7 +1,7 @@
 ---
 next:
-  text: 'Ham Web 概要'
-  link: '/ja/development/ham-web/'
+  text: 'Ham Connect 概要'
+  link: '/ja/development/open-platform/'
 ---
 
 # 開発

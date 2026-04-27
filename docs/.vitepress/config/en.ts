@@ -81,23 +81,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/en/open-platform/': [
-    {
-      text: 'Ham Connect',
-      collapsed: false,
-      base: '/en/open-platform/',
-      items: [
-        {
-          text: 'Overview',
-          link: 'index',
-        },
-        {
-          text: 'Integration Guide',
-          link: 'oauth2-guide',
-        },
-      ],
-    },
-  ],
+
   '/en/privacy/': [
     {
       text: 'Privacy',
@@ -130,7 +114,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Connect',
       collapsed: false,
-      base: '/en/open-platform/',
+      base: '/en/development/open-platform/',
       items: [
         {
           text: 'Overview',

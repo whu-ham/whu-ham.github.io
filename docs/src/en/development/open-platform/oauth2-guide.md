@@ -1,3 +1,12 @@
+---
+prev:
+  text: 'Ham Connect Overview'
+  link: '/en/development/open-platform/'
+next:
+  text: 'Ham Web Overview'
+  link: '/en/development/ham-web/'
+---
+
 # OAuth 2.0 Full Integration Guide
 
 > This document is intended for third-party application developers who wish to integrate with the **Ham Open Platform**. It provides a comprehensive introduction to the SSO authorization flow, API specifications, integration details, and security best practices based on OAuth 2.0 Authorization Code Grant (RFC 6749 §4.1).

@@ -1,3 +1,12 @@
+---
+prev:
+  text: 'Ham Connect 概要'
+  link: '/ja/development/open-platform/'
+next:
+  text: 'Ham Web 概要'
+  link: '/ja/development/ham-web/'
+---
+
 # OAuth 2.0 完全接続ガイド
 
 > 本ドキュメントは、**Hamオープンプラットフォーム**に接続を希望するサードパーティアプリケーション開発者向けです。HamがOAuth 2.0 Authorization Code Grant（RFC 6749 §4.1）に基づいて実装したSSO認可フロー、API仕様、接続の詳細、およびセキュリティベストプラクティスを体系的に紹介します。

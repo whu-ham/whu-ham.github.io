@@ -1,7 +1,7 @@
 ---
 prev:
-  text: '开发概述'
-  link: '/development/'
+  text: '接入指南'
+  link: '/development/open-platform/oauth2-guide'
 next:
   text: 'SSO OAuth2 授权'
   link: '/development/ham-web/sso-authorize'

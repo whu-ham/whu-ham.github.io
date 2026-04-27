@@ -1,7 +1,7 @@
 ---
 next:
-  text: 'Ham Web 概述'
-  link: '/development/ham-web/'
+  text: 'Ham互联概述'
+  link: '/development/open-platform/'
 ---
 
 # 开发

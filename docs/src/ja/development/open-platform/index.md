@@ -1,7 +1,10 @@
 ---
+prev:
+  text: '開発概要'
+  link: '/ja/development/'
 next:
   text: '接続ガイド'
-  link: '/ja/open-platform/oauth2-guide'
+  link: '/ja/development/open-platform/oauth2-guide'
 ---
 
 # Ham Connect

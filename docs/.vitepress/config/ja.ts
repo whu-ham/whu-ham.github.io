@@ -81,23 +81,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/ja/open-platform/': [
-    {
-      text: 'Ham Connect',
-      collapsed: false,
-      base: '/ja/open-platform/',
-      items: [
-        {
-          text: '概要',
-          link: 'index',
-        },
-        {
-          text: '接続ガイド',
-          link: 'oauth2-guide',
-        },
-      ],
-    },
-  ],
+
   '/ja/privacy/': [
     {
       text: 'プライバシー',
@@ -130,7 +114,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham Connect',
       collapsed: false,
-      base: '/ja/open-platform/',
+      base: '/ja/development/open-platform/',
       items: [
         {
           text: '概要',

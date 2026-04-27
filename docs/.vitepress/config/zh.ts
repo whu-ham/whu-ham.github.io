@@ -81,23 +81,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/open-platform/': [
-    {
-      text: 'Ham互联',
-      collapsed: false,
-      base: '/open-platform/',
-      items: [
-        {
-          text: '概述',
-          link: 'index',
-        },
-        {
-          text: '接入指南',
-          link: 'oauth2-guide',
-        },
-      ],
-    },
-  ],
+
   '/privacy/': [
     {
       text: '协议',
@@ -130,7 +114,7 @@ const sideBar: DefaultTheme.Sidebar = {
     {
       text: 'Ham互联',
       collapsed: false,
-      base: '/open-platform/',
+      base: '/development/open-platform/',
       items: [
         {
           text: '概述',
