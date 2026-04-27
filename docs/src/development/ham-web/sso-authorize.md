@@ -2,7 +2,7 @@
 
 ## 用户操作入口
 
-当第三方应用通过 Ham 互联平台发起 OAuth2 授权时，用户会被重定向到 ham-web 的 `/sso-authorize` 页面。
+当第三方应用通过 Ham 互联平台发起 OAuth2 授权时，用户会被重定向到 Ham Web 的 `/sso-authorize` 页面。
 
 该页面的行为取决于用户的设备和登录状态：
 
@@ -83,7 +83,7 @@ stateDiagram-v2
 sequenceDiagram
     participant ThirdParty as 第三方应用
     participant Browser as 浏览器
-    participant HamWeb as ham-web
+    participant HamWeb as Ham Web
     participant HamBackend as Ham 后端
     participant HamApp as Ham 原生应用
 

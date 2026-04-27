@@ -1,7 +1,7 @@
 ---
 next:
-  text: 'ham-web Overview'
-  link: '/en/development/ham-web/'
+  text: 'Ham Connect Overview'
+  link: '/en/development/open-platform/'
 ---
 
 # Development
@@ -10,14 +10,14 @@ Welcome to the Ham open-source project development documentation! Ham currently 
 
 | Project | Description | Repository |
 | --- | --- | --- |
-| [ham-rn](/en/development/ham-rn/) | React Native component repository, integrated into native apps via OTA hot updates | [GitHub](https://github.com/whu-ham/ham-rn) |
-| [ham-web](/en/development/ham-web/) | Web frontend for SSO authorization and more | [GitHub](https://github.com/whu-ham/ham-web) |
+| [Ham React Native Components](/en/development/ham-rn/) | React Native component repository, integrated into native apps via OTA hot updates | [GitHub](https://github.com/whu-ham/ham-rn) |
+| [Ham Web](/en/development/ham-web/) | Web frontend for SSO authorization and more | [GitHub](https://github.com/whu-ham/ham-web) |
 
 ## Overview
 
-**ham-rn** is the React Native component repository for the Ham app, integrated into native apps via OTA hot updates. It handles the UI and business logic for core features such as course schedule queries, grade queries, GPA calculation, and CAS authentication.
+**Ham React Native Components** is the React Native component repository for the Ham app, integrated into native apps via OTA hot updates. It handles the UI and business logic for core features such as course schedule queries, grade queries, GPA calculation, and CAS authentication.
 
-**ham-web** is the web frontend for Ham, built with Next.js. It primarily serves the SSO single sign-on authorization flow (including QR code login and Passkey login) and acts as the web entry point for the Ham Connect platform.
+**Ham Web** is the web frontend for Ham, built with Next.js. It primarily serves the SSO single sign-on authorization flow (including QR code login and Passkey login) and acts as the web entry point for the Ham Connect platform.
 
 ## Contributing
 

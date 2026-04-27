@@ -10,11 +10,7 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/handbook/',
   },
   {
-    text: '互联',
-    link: '/open-platform/',
-  },
-  {
-    text: '开发',
+    text: '开发者',
     link: '/development/',
   },
   {
@@ -85,23 +81,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/open-platform/': [
-    {
-      text: '互联',
-      collapsed: false,
-      base: '/open-platform/',
-      items: [
-        {
-          text: '概述',
-          link: 'index',
-        },
-        {
-          text: '接入指南',
-          link: 'oauth2-guide',
-        },
-      ],
-    },
-  ],
+
   '/privacy/': [
     {
       text: '协议',
@@ -132,7 +112,22 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: 'ham-web',
+      text: 'Ham互联',
+      collapsed: false,
+      base: '/development/open-platform/',
+      items: [
+        {
+          text: '概述',
+          link: 'index',
+        },
+        {
+          text: '接入指南',
+          link: 'oauth2-guide',
+        },
+      ],
+    },
+    {
+      text: 'Ham Web',
       collapsed: false,
       base: '/development/ham-web/',
       items: [
@@ -147,7 +142,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: 'ham-rn',
+      text: 'Ham React Native组件',
       collapsed: false,
       base: '/development/ham-rn/',
       items: [

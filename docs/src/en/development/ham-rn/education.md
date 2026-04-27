@@ -1,6 +1,6 @@
 # Education Module
 
-The education module is the core business module of ham-rn, responsible for fetching course schedules and grade data from the university's education system.
+The education module is the core business module of Ham React Native Components, responsible for fetching course schedules and grade data from the university's education system.
 
 ## Course Query
 

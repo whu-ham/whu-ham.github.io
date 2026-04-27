@@ -4,7 +4,7 @@
 
 **Me → Scores → Settings → F2 Calculation Method → Use other calculation (JavaScript-based) → Choose calculation**
 
-Users go to the "Me" page, enter Scores, tap Settings, under "F2 calculation method" select "Use other calculation (JavaScript-based)", then tap "Choose calculation" to enter the score calculation script selection page, which is rendered by ham-rn.
+Users go to the "Me" page, enter Scores, tap Settings, under "F2 calculation method" select "Use other calculation (JavaScript-based)", then tap "Choose calculation" to enter the score calculation script selection page, which is rendered by Ham React Native Components.
 
 ## Features
 

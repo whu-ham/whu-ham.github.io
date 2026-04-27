@@ -2,7 +2,7 @@
 layout: home
 hero:
   name: Ham
-  tagline: 使用手册与协议
+  tagline: 文档中心
   image: 
     src: images/icons/android-chrome-192x192.png
     alt: Ham-Logo

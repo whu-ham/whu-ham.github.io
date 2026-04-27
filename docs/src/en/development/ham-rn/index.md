@@ -7,9 +7,9 @@ next:
   link: '/en/development/ham-rn/cas'
 ---
 
-# ham-rn
+# Ham React Native Components
 
-[ham-rn](https://github.com/whu-ham/ham-rn) is the React Native component repository for the Ham app, integrated into iOS / Android native apps via OTA (Over-The-Air) hot updates. It handles the UI rendering and business logic for CAS authentication, education system features (course and grade queries), GPA calculation, and more.
+[Ham React Native Components](https://github.com/whu-ham/ham-rn) is the React Native component repository for the Ham app, integrated into iOS / Android native apps via OTA (Over-The-Air) hot updates. It handles the UI rendering and business logic for CAS authentication, education system features (course and grade queries), GPA calculation, and more.
 
 ## Tech Stack
 
@@ -70,7 +70,7 @@ src/
 
 ## Module Overview
 
-ham-rn contains the following core modules. Click to view detailed documentation:
+Ham React Native Components contains the following core modules. Click to view detailed documentation:
 
 | Module | User Entry Point | Description |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ ham-rn contains the following core modules. Click to view detailed documentation
 
 ### Native Module Specs
 
-ham-rn uses React Native Turbo Modules to communicate with the native side. Here are the modules and their purposes:
+Ham React Native Components uses React Native Turbo Modules to communicate with the native side. Here are the modules and their purposes:
 
 | Module | Description |
 | --- | --- |
@@ -98,7 +98,7 @@ ham-rn uses React Native Turbo Modules to communicate with the native side. Here
 | `NativeScoreCalcModule` | Score calculation script management: get current calculation (`getCurrentCalc`), select calculation (`selectCalc`), view details (`openDetail`), test script (`testItem`), listen for calculation change events (`onSetScoreJsCalcItem`) |
 | `NativeLog` | Logging: info log (`i(tag, message)`), error log (`e(tag, message)`) |
 
-ham-rn only contains the TypeScript-side interface declarations (Turbo Module Specs). The native implementations reside in the iOS / Android native projects.
+Ham React Native Components only contains the TypeScript-side interface declarations (Turbo Module Specs). The native implementations reside in the iOS / Android native projects.
 
 ### Internationalization
 
@@ -121,4 +121,4 @@ GitHub Actions runs automatically on PRs and pushes to `main`:
 
 ## License
 
-ham-rn is [MIT licensed](https://opensource.org/licenses/MIT).
+Ham React Native Components is [MIT licensed](https://opensource.org/licenses/MIT).

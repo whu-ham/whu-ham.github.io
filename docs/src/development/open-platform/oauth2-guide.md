@@ -1,3 +1,12 @@
+---
+prev:
+  text: 'Ham互联概述'
+  link: '/development/open-platform/'
+next:
+  text: 'Ham Web 概述'
+  link: '/development/ham-web/'
+---
+
 # 接入指南
 
 > 本文档面向希望接入 **Ham 开放平台** 的第三方应用开发者，系统介绍 Ham 基于 OAuth 2.0 Authorization Code Grant（RFC 6749 §4.1）实现的 SSO 授权流程、接口规范、接入细节以及安全最佳实践。

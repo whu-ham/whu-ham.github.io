@@ -2,7 +2,7 @@
 
 ## ユーザー操作入口
 
-サードパーティアプリが Ham Connect プラットフォームを通じて OAuth2 認証を開始すると、ユーザーは ham-web の `/sso-authorize` ページにリダイレクトされます。
+サードパーティアプリが Ham Connect プラットフォームを通じて OAuth2 認証を開始すると、ユーザーは Ham Web の `/sso-authorize` ページにリダイレクトされます。
 
 ページの動作はユーザーのデバイスとログイン状態によって異なります：
 
@@ -83,7 +83,7 @@ stateDiagram-v2
 sequenceDiagram
     participant ThirdParty as サードパーティアプリ
     participant Browser as ブラウザ
-    participant HamWeb as ham-web
+    participant HamWeb as Ham Web
     participant HamBackend as Ham バックエンド
     participant HamApp as Ham ネイティブアプリ
 

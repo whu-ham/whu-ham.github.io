@@ -10,7 +10,7 @@ Ham アプリで以下の操作で CAS ログインを行います：
 
 ## 機能説明
 
-CAS（Central Authentication Service）は大学の統一認証システムです。ham-rn の CAS モジュールは以下を担当します：
+CAS（Central Authentication Service）は大学の統一認証システムです。Ham React Nativeコンポーネントの CAS モジュールは以下を担当します：
 
 1. WebView を通じて大学の CAS ログインページを読み込み
 2. カスタム JavaScript スクリプトを注入し、ログインフォームのローカライズ（多言語対応）を実現

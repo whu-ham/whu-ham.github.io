@@ -10,7 +10,7 @@ When using education features (course query, grade query, etc.) for the first ti
 
 ## Features
 
-CAS (Central Authentication Service) is the university's unified identity authentication system. The ham-rn CAS module handles:
+CAS (Central Authentication Service) is the university's unified identity authentication system. The Ham React Native Components CAS module handles:
 
 1. Loading the university CAS login page via WebView
 2. Injecting custom JavaScript scripts for login form localization (multi-language support)

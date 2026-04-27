@@ -10,11 +10,7 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/en/handbook/',
   },
   {
-    text: 'Connect',
-    link: '/en/open-platform/',
-  },
-  {
-    text: 'Development',
+    text: 'Developers',
     link: '/en/development/',
   },
   {
@@ -85,23 +81,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
   ],
-  '/en/open-platform/': [
-    {
-      text: 'Connect',
-      collapsed: false,
-      base: '/en/open-platform/',
-      items: [
-        {
-          text: 'Overview',
-          link: 'index',
-        },
-        {
-          text: 'Integration Guide',
-          link: 'oauth2-guide',
-        },
-      ],
-    },
-  ],
+
   '/en/privacy/': [
     {
       text: 'Privacy',
@@ -132,7 +112,22 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: 'ham-web',
+      text: 'Ham Connect',
+      collapsed: false,
+      base: '/en/development/open-platform/',
+      items: [
+        {
+          text: 'Overview',
+          link: 'index',
+        },
+        {
+          text: 'Integration Guide',
+          link: 'oauth2-guide',
+        },
+      ],
+    },
+    {
+      text: 'Ham Web',
       collapsed: false,
       base: '/en/development/ham-web/',
       items: [
@@ -147,7 +142,7 @@ const sideBar: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: 'ham-rn',
+      text: 'Ham React Native Components',
       collapsed: false,
       base: '/en/development/ham-rn/',
       items: [
