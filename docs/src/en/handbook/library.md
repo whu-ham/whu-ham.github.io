@@ -1,39 +1,12 @@
 # Library
 You can use Ham to book library seats easily.
 
-::: tip Note
-The new version removes captcha recognition. If you are using the new version of Ham, you can ignore the "captcha recognition" notes below.
-:::
-
 ## Preparation
 Before using the library features, you need:
-- Library account / Information portal account
-- ~~Tencent Cloud OCR~~
+- Information portal account
 
-### Prepare your library account / information portal account
-By default, you should have a library account set up in the first weeks of the semester. The default password is the last 6 digits of your ID number. If you forget your library account, please report it at the library desk.
-
-~~### Prepare a Tencent Cloud OCR account~~
-~~The library seat booking provider added captchas. To enable auto-booking, Ham added automatic captcha recognition.~~
-
-Captcha recognition uses Tencent Cloud OCR. For authentication, you **must** enter your Tencent Cloud OCR credentials before using library features. Each user has 1000 free recognitions per month. If you are not abusing reservations, that is more than enough.
-
-::: warning Notice
-Ham does not and will not collect your information, including your Tencent Cloud account. While Ham uses multiple protections for sensitive data, you still need to protect your own accounts.
-:::
-
-#### How to enable Tencent Cloud OCR?
-Click the links below for details:
-
-[How to enable Tencent Cloud OCR](https://cloud.tencent.com/document/product/866/17622)
-
-[Get Secret ID and Secret Key](https://console.cloud.tencent.com/cam/capi)
-
-::: danger Important
-If you have never used Tencent Cloud OCR, **make sure you complete the console profile and enable the service.**
-
-If you do not fill any profile info, the service is not enabled and OCR will not work.
-:::
+### Prepare your information portal account
+The library seat reservation system authenticates via the information portal (CAS) single sign-on. You need to set up your information portal account and password in Ham. If you forget your information portal credentials, please reset them on the information portal website.
 
 ## Seat map booking
 Seat map booking lets you view availability by library, room, and seat, and book directly.
@@ -76,9 +49,9 @@ You can change the reservation time or cancel it from the status card.
 
 If you booked a long session and need to leave for a while (longer than the library allows), you can change the reservation time before leaving so you can keep the seat when you return.
 
-After Ham fetches your reservation status, it automatically adds the event to iOS Calendar and reminds you 10 minutes before entry.
+After Ham fetches your reservation status, it automatically adds the event to the system calendar and reminds you 10 minutes before entry. (iOS)
 
-Reservation status supports LiveActivity. Active reservations will be pinned in the notification area (iOS).
+Reservation status supports Dynamic Island and LiveActivity. Active reservations will be pinned in the notification area, showing the seat number, location, and time. (iOS)
 
 ## History
 You can view your library reservation history.
@@ -89,13 +62,6 @@ You can place a widget on the home screen to remind you of the reservation locat
 You can set the widget refresh interval, but if it is too frequent, it may trigger a temporary library ban (15 minutes is generally recommended).
 
 ## Other library settings
-~~### Use captcha booking~~
-~~Ham needs time to recognize captchas with Tencent Cloud OCR. If the library does not require captchas but you enable this option, you will waste your quota and reservation time.~~
-
-~~Whether captcha booking is required depends on the library mini app. Enable or disable based on the actual requirement.~~
-
-In the new version, captcha booking is disabled by default.
-
 ### Update base data
 Generally, when you enter the reservation page, Ham uses local room data to reduce network requests and speed up booking. Each time you enter "Library," Ham tries to update the base data.
 

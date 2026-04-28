@@ -19,9 +19,9 @@ Browsing facilities is suitable when:
 - A venue has plenty of remaining slots
 
 ## Favorite bookings
-You can set favorite venues, sessions, and time slots in settings. After you set them, the booking appears on the home page for quick booking, and you can use Siri Shortcuts for automation.
+You can set favorite venues, sessions, and time slots in settings. After you set them, the booking appears on the home page for quick booking.
 ::: tip Note
-Quick booking on the home page or via Siri Shortcuts does not confirm availability for the slot. If a booking fails, Ham will select a nearby available slot automatically.
+Quick booking on the home page does not confirm availability for the slot. If a booking fails, Ham will select a nearby available slot automatically.
 :::
 
 ## Order center
@@ -45,6 +45,3 @@ Payments on the WHU payment platform are not handled by Ham.
 Your booking status is shown on the home page.
 
 When payment is due, you can pay from the booking status card.
-
-## Automation
-Use Siri Shortcuts for automated booking.

@@ -4,7 +4,7 @@ Automation is one of Ham's key features.
 Currently supported automation features:
 - Quick library booking
 - ~~Running (Sunshine Sports platform is offline)~~
-- ~~Venue booking (currently requires captcha)~~
+- ~~Venue booking (not supported)~~
 
 ## Android
 Requirements to enable automation:
