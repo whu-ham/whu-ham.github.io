@@ -19,6 +19,13 @@ export const shared = defineConfig({
     ],
     ['link', {rel: 'icon', href: '/icon.png'}],
     ['link', {rel: 'manifest', href: '/manifest.webmanifest'}],
+    [
+      'meta',
+      {
+        name: 'algolia-site-verification',
+        content: '48C2DFC304B4DCF2',
+      },
+    ],
   ],
   themeConfig: {
     logo: '/icon-1024 2.png',
