@@ -35,7 +35,7 @@ export const shared = defineConfig({
       options: {
         appId: '92H3AM2QST',
         apiKey: 'c509e924662c649625019c373a234990',
-        indexName: 'whu-ham',
+        indexName: 'ham_docs_pages',
         locales: {
           ...enSearch,
           ...jaSearch,
