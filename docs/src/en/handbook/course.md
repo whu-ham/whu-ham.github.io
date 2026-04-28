@@ -34,7 +34,7 @@ Tap a class to view details.
 
 If the class is imported from the academic system, Ham shows the course type and credits.
 
-If the class is in Ham's grading system, Ham shows the grading distribution.
+If the class is in Ham's grading system, Ham shows the grading distribution, course reviews, ratings, and the number of students who "want to take" it.
 
 You can add schedule items from the class details, and new items will be linked to the course. You can also view all schedule items related to the course here.
 
@@ -67,7 +67,7 @@ You must set the semester start date so Ham knows which term you are using and c
 
 You can also set a background image, adjust class transparency, ~~and Gaussian blur transparency~~.
 
-~~You can also import timetables for WHU undergraduate and graduate programs.~~
+You can also import timetables from the academic system by logging in via the information portal.
 
 ## Widgets
 Ham provides timetable widgets. You can place a widget on your home screen to quickly view today's or tomorrow's classes.

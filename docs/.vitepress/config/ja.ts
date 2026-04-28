@@ -71,8 +71,8 @@ const sideBar: DefaultTheme.Sidebar = {
           link: 'automatic',
         },
         {
-          text: '同期',
-          link: 'sync',
+          text: 'ユーザーセンター',
+          link: 'user-center',
         },
         {
           text: 'フィードバック',

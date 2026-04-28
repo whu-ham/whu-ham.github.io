@@ -14,5 +14,5 @@ Before using the campus bus feature, log in to your information portal account i
 ## Status
 The "Campus Bus" card on the status page shows campus bus information for the nearest stop and updates automatically.
 
-## Dynamic Island / LiveActivity
+## Dynamic Island / LiveActivity (iOS)
 You can add a Dynamic Island/LiveActivity to the campus bus card on the status page. This feature uses background location permission.

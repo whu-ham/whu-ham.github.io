@@ -71,8 +71,8 @@ const sideBar: DefaultTheme.Sidebar = {
           link: 'automatic',
         },
         {
-          text: 'Sync',
-          link: 'sync',
+          text: 'User Center',
+          link: 'user-center',
         },
         {
           text: 'Feedback',
