@@ -26,6 +26,13 @@ export const shared = defineConfig({
         content: '48C2DFC304B4DCF2',
       },
     ],
+    [
+      'meta',
+      {
+        name: 'google-site-verification',
+        content: 'bey8YpvItGutIgFBvc495TegrmPbv0tu2gIBkruBpzo',
+      },
+    ],
   ],
   themeConfig: {
     logo: '/icon-1024 2.png',
@@ -43,6 +50,9 @@ export const shared = defineConfig({
         },
       },
     },
+  },
+  sitemap: {
+    hostname: 'https://docs.ham.nowcent.cn',
   },
   vite: {
     resolve: {
