@@ -1,4 +1,5 @@
 ---
+description: "通过OAuth2集成Ham SSO的分步指南。"
 prev:
   text: 'Ham互联概述'
   link: '/developers/open-platform/'

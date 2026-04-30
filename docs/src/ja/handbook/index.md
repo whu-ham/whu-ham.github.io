@@ -1,4 +1,5 @@
 ---
+description: "Hamとその機能の紹介。"
 next:
   text: 'ステータス'
   link: '/ja/handbook/status'

@@ -1,4 +1,5 @@
 ---
+description: "Ham開発者プロジェクトとドキュメントの概要。"
 next:
   text: 'Ham Connect 概要'
   link: '/ja/developers/open-platform/'

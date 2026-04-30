@@ -1,4 +1,5 @@
 ---
+description: "Ham - 武漢大学のキャンパスライフアシスタントアプリ。"
 layout: home
 hero:
   name: Ham

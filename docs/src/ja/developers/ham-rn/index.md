@@ -1,4 +1,5 @@
 ---
+description: "キャンパス機能向けHam React Nativeコンポーネントライブラリ。"
 prev:
   text: 'SSO OAuth2 認証'
   link: '/ja/developers/ham-web/sso-authorize'

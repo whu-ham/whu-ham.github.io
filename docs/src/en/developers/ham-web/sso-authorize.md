@@ -1,3 +1,7 @@
+---
+description: "SSO OAuth2 authorization flow and API reference for Ham Web."
+---
+
 # SSO OAuth2 Authorization
 
 ## User Entry Point

@@ -1,3 +1,7 @@
+---
+description: "Enable automation features like library auto-booking."
+---
+
 # Enable Automation
 Automation is one of Ham's key features.
 

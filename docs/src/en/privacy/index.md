@@ -1,4 +1,5 @@
 ---
+description: "Ham privacy policy - data collection, storage, and usage."
 next:
   text: 'User Agreement'
   link: '/en/privacy/user-policy'

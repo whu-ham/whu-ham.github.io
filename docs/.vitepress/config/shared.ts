@@ -1,4 +1,5 @@
 import {defineConfig} from 'vitepress';
+import llmstxt from 'vitepress-plugin-llms';
 import {enSearch} from './en';
 import {jaSearch} from './ja';
 import {zhSearch} from './zh';
@@ -55,6 +56,7 @@ export const shared = defineConfig({
     hostname: 'https://docs.ham.nowcent.cn',
   },
   vite: {
+    plugins: [llmstxt({workDir: 'en'})],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '../..'),

@@ -1,4 +1,5 @@
 ---
+description: "Ham Webフロントエンドのアーキテクチャと機能。"
 prev:
   text: 'ブランドリソース'
   link: '/ja/developers/open-platform/brand-assets'

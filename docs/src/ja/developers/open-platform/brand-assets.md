@@ -1,4 +1,5 @@
 ---
+description: "Ham公式アイコン、ブランドカラー、使用ガイドライン。"
 prev:
   text: 'ログインボタンソースコード'
   link: '/ja/developers/open-platform/login-button'

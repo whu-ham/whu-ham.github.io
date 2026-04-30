@@ -1,4 +1,5 @@
 ---
+description: "面向校园功能的Ham React Native组件库。"
 prev:
   text: 'SSO OAuth2 授权'
   link: '/developers/ham-web/sso-authorize'

@@ -1,3 +1,7 @@
+---
+description: "How to book sports facilities with Ham."
+---
+
 # Sports Facilities
 
 ::: tip Version requirements

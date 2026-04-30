@@ -1,4 +1,5 @@
 ---
+description: "OAuth2によるHam SSO統合のステップバイステップガイド。"
 prev:
   text: 'Ham Connect 概要'
   link: '/ja/developers/open-platform/'

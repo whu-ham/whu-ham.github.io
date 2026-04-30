@@ -1,3 +1,7 @@
+---
+description: "Status page showing today's tasks, weather, library reservations, and classes."
+---
+
 # Status
 The status page shows the tasks you need to handle today.
 

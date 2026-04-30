@@ -1,4 +1,5 @@
 ---
+description: "Ham开发者项目和文档概览。"
 next:
   text: 'Ham互联概述'
   link: '/developers/open-platform/'

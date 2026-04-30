@@ -1,4 +1,5 @@
 ---
+description: "Ham React Native component library for campus features."
 prev:
   text: 'SSO OAuth2 Authorization'
   link: '/en/developers/ham-web/sso-authorize'

@@ -1,4 +1,5 @@
 ---
+description: "マルチプラットフォーム対応のHamログインボタンコンポーネント（Vue、React、React Native、Android、iOS、HTML/CSS）。"
 prev:
   text: '接続ガイド'
   link: '/ja/developers/open-platform/oauth2-guide'

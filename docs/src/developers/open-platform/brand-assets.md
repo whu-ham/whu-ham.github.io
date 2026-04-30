@@ -1,4 +1,5 @@
 ---
+description: "Ham官方图标、品牌色和使用规范。"
 prev:
   text: '登录按钮源码'
   link: '/developers/open-platform/login-button'

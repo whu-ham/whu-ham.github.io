@@ -1,4 +1,5 @@
 ---
+description: "多平台Ham登录按钮组件（Vue、React、React Native、Android、iOS、HTML/CSS）。"
 prev:
   text: '接入指南'
   link: '/developers/open-platform/oauth2-guide'

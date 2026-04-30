@@ -1,3 +1,7 @@
+---
+description: "Quick access to Luojia E-Card campus payment QR code."
+---
+
 # Luojia E-Card
 
 ::: tip Version requirements

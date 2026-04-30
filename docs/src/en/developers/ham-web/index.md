@@ -1,4 +1,5 @@
 ---
+description: "Ham Web frontend architecture and features."
 prev:
   text: 'Brand Assets'
   link: '/en/developers/open-platform/brand-assets'

@@ -1,3 +1,7 @@
+---
+description: "Download Ham for iOS and Android."
+---
+
 <script setup>
 import AndroidDownloadPanel from '../../../page/download/component/AndroidDownloadPanel.vue';
 import IOSDownloadPanel from '../../../page/download/component/IOSDownloadPanel.vue';

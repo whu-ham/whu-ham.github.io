@@ -1,3 +1,7 @@
+---
+description: "How to use Ham for library seat reservations."
+---
+
 # Library
 You can use Ham to book library seats easily.
 

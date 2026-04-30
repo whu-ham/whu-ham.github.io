@@ -1,4 +1,5 @@
 ---
+description: "Ham - 武汉大学校园生活助手应用。"
 layout: home
 hero:
   name: Ham

@@ -1,4 +1,5 @@
 ---
+description: "Hamプライバシーポリシー - データの収集、保存、使用について。"
 next:
   text: '利用規約'
   link: '/ja/privacy/user-policy'
