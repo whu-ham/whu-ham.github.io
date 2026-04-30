@@ -124,6 +124,14 @@ const sideBar: DefaultTheme.Sidebar = {
           text: '接入指南',
           link: 'oauth2-guide',
         },
+        {
+          text: '登录按钮源码',
+          link: 'login-button',
+        },
+        {
+          text: '品牌资源',
+          link: 'brand-assets',
+        },
       ],
     },
     {

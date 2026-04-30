@@ -1,7 +1,7 @@
 ---
 prev:
-  text: '接続ガイド'
-  link: '/ja/developers/open-platform/oauth2-guide'
+  text: 'ブランドリソース'
+  link: '/ja/developers/open-platform/brand-assets'
 next:
   text: 'SSO OAuth2 認証'
   link: '/ja/developers/ham-web/sso-authorize'

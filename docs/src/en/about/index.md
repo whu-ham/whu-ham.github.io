@@ -8,4 +8,4 @@ Some features (like grade distribution) require a backend service. When data mus
 ### Why is it not open source (yet)?
 The project includes private credentials (push services, Apple developer account, etc.), so it is not open source for now. Ham is still completely free to use.
 
-If you have suggestions, feel free to chat with us on Gitter. Technical discussions are welcome too.
+If you have suggestions, feel free to reach out on [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions). Technical discussions are welcome too.

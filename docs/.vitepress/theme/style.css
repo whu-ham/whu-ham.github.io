@@ -143,4 +143,6 @@
 
 .image-src {
   border-radius: 16px !important;
+  max-width: 192px !important;
+  max-height: 192px !important;
 }

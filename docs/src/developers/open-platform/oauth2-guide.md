@@ -3,8 +3,8 @@ prev:
   text: 'Ham互联概述'
   link: '/developers/open-platform/'
 next:
-  text: 'Ham Web 概述'
-  link: '/developers/ham-web/'
+  text: '登录按钮源码'
+  link: '/developers/open-platform/login-button'
 ---
 
 # 接入指南
