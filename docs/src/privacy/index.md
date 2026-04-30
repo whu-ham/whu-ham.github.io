@@ -1,4 +1,5 @@
 ---
+description: "Ham隐私政策 - 数据收集、存储和使用。"
 next:
   text: '用户协议'
   link: '/privacy/user-policy'

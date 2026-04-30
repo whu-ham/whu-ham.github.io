@@ -1,4 +1,5 @@
 ---
+description: "Ham Web前端架构和功能。"
 prev:
   text: '品牌资源'
   link: '/developers/open-platform/brand-assets'

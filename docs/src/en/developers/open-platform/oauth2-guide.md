@@ -1,4 +1,5 @@
 ---
+description: "Step-by-step guide to integrate Ham SSO via OAuth2."
 prev:
   text: 'Ham Connect Overview'
   link: '/en/developers/open-platform/'

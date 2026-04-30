@@ -1,3 +1,7 @@
+---
+description: "View grades, calculate GPA, and check grade distributions."
+---
+
 # Grades
 You can use Ham to view your course grades, calculate your GPA or comprehensive evaluation score, and check grade distributions.
 

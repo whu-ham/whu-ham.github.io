@@ -1,3 +1,7 @@
+---
+description: "How to add, edit, delete, and import courses in Ham."
+---
+
 # Courses
 Ham provides a highly customizable timetable. You can import your courses into Ham, and it will remind you at the right time.
 

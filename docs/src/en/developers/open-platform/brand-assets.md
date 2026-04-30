@@ -1,4 +1,5 @@
 ---
+description: "Official Ham icons, brand colors, and usage guidelines."
 prev:
   text: 'Login Button Source Code'
   link: '/en/developers/open-platform/login-button'

@@ -1,3 +1,7 @@
+---
+description: "Ham Web的SSO OAuth2授权流程和API参考。"
+---
+
 # SSO OAuth2 授权
 
 ## 用户操作入口

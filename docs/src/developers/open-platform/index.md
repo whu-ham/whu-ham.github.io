@@ -1,4 +1,5 @@
 ---
+description: "Ham Connect SSO平台概述和功能。"
 prev:
   text: '开发概述'
   link: '/developers/'

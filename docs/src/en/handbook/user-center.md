@@ -1,3 +1,7 @@
+---
+description: "Manage your Ham account and settings."
+---
+
 # User Center
 
 After logging in to your Ham account, you can manage your account information and settings in the User Center.

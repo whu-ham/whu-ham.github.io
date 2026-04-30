@@ -1,3 +1,7 @@
+---
+description: "CAS authentication module for WHU information portal login."
+---
+
 # CAS Authentication Module
 
 ## User Entry Point

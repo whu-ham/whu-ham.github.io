@@ -1,3 +1,7 @@
+---
+description: "Ham WebのSSO OAuth2認証フローとAPIリファレンス。"
+---
+
 # SSO OAuth2 認証
 
 ## ユーザー操作入口

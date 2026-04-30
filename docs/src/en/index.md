@@ -1,4 +1,5 @@
 ---
+description: "Ham - A campus life assistant app for Wuhan University (WHU)."
 layout: home
 hero:
   name: Ham

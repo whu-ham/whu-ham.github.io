@@ -1,3 +1,7 @@
+---
+description: "View real-time campus bus arrival information."
+---
+
 # Campus Bus
 
 ::: tip Version requirements

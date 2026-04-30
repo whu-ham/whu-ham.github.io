@@ -1,4 +1,5 @@
 ---
+description: "Overview of Ham developer projects and documentation."
 next:
   text: 'Ham Connect Overview'
   link: '/en/developers/open-platform/'

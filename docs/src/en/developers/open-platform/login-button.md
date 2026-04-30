@@ -1,4 +1,5 @@
 ---
+description: "Multi-platform Login with Ham button components (Vue, React, React Native, Android, iOS, HTML/CSS)."
 prev:
   text: 'Integration Guide'
   link: '/en/developers/open-platform/oauth2-guide'

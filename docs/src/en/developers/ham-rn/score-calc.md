@@ -1,3 +1,7 @@
+---
+description: "GPA and credit calculation utilities using custom JavaScript scripts."
+---
+
 # Score Calculator Module
 
 ## User Entry Point

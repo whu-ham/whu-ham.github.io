@@ -1,4 +1,5 @@
 ---
+description: "Ham Connect SSOプラットフォームの概要と機能。"
 prev:
   text: '開発概要'
   link: '/ja/developers/'

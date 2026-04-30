@@ -1,3 +1,7 @@
+---
+description: "About Ham, security, privacy, and open-source status."
+---
+
 # About
 
 ### Is Ham safe?

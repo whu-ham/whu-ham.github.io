@@ -1,4 +1,5 @@
 ---
+description: "Ham及其功能介绍。"
 next:
   text: '状态'
   link: '/handbook/status'

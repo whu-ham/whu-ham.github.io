@@ -1,3 +1,7 @@
+---
+description: "Ham user agreement - terms of service."
+---
+
 # User Agreement
 
 This agreement sets out the rights and obligations between Ham and users for Ham software services (the "Service"). "User" refers to any individual who downloads, installs, registers, logs in, or uses the Service (collectively, "use"). Before registering, Ham hereby reminds you to read this User Agreement (the "Agreement") carefully to ensure you fully understand all terms. Please read and understand the terms carefully, especially those related to limitation or exclusion of liability, rights licensing and information use, consent to special services, applicable law, and dispute resolution. Important terms such as exclusions or limitations of liability will be highlighted in bold. If you do not agree to this Agreement, Ham cannot provide complete products and services, and you may choose to stop using the Service. If you choose to agree or use Ham and related services, you are deemed to have fully understood and accepted this Agreement and other agreements and rules related to Ham (including but not limited to this Agreement).

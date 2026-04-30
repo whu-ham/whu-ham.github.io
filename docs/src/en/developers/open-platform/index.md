@@ -1,4 +1,5 @@
 ---
+description: "Ham Connect SSO platform overview and capabilities."
 prev:
   text: 'Development Overview'
   link: '/en/developers/'

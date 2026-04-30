@@ -1,3 +1,7 @@
+---
+description: "Manage schedule items with due-date reminders and calendar sync."
+---
+
 # Schedule
 On the schedule page, you can view all schedule items, and add or delete them.
 
