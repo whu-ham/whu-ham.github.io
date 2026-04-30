@@ -1,5 +1,4 @@
 ---
-description: "Ham - 武汉大学校园生活助手应用。"
 layout: home
 hero:
   name: Ham
@@ -45,4 +44,6 @@ features:
   - icon: 📅
     title: 日程
     details: 添加你的作业并支持到期提醒，支持关联课程，并同步到iOS日历
+
+description: "Ham - 武汉大学校园生活助手应用。"
 ---

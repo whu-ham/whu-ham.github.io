@@ -1,11 +1,10 @@
 ---
-description: "Ham - 武漢大学のキャンパスライフアシスタントアプリ。"
 layout: home
 hero:
   name: Ham
   tagline: ドキュメント
   image:
-    src: ../images/icons/android-chrome-192x192.png
+    src: ../icon-1024 2.png
     alt: Ham-Logo
   actions:
     - theme: brand
@@ -45,4 +44,6 @@ features:
   - icon: 📅
     title: 予定
     details: 課題を追加して期限前通知、授業に関連付け、iOSカレンダーに同期
+
+description: "Ham - 武漢大学のキャンパスライフアシスタントアプリ。"
 ---

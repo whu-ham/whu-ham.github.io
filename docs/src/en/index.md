@@ -1,11 +1,10 @@
 ---
-description: "Ham - A campus life assistant app for Wuhan University (WHU)."
 layout: home
 hero:
   name: Ham
   tagline: Documentation
   image:
-    src: ../images/icons/android-chrome-192x192.png
+    src: ../icon-1024 2.png
     alt: Ham-Logo
   actions:
     - theme: brand
@@ -45,4 +44,6 @@ features:
   - icon: 📅
     title: Schedule
     details: Add assignments with reminders, link to courses, and sync to iOS Calendar
+
+description: "Ham - A campus life assistant app for Wuhan University (WHU)."
 ---
