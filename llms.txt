@@ -1,0 +1,35 @@
+# Ham
+
+> Ham - A campus life assistant app for Wuhan University (WHU).
+
+Documentation
+
+## Table of Contents
+
+- [About](/about.md): About Ham, security, privacy, and open-source status.
+- [Brand Assets](/developers/open-platform/brand-assets.md): Official Ham icons, brand colors, and usage guidelines.
+- [Campus Bus](/handbook/bus.md): View real-time campus bus arrival information.
+- [CAS Authentication Module](/developers/ham-rn/cas.md): CAS authentication module for WHU information portal login.
+- [Courses](/handbook/course.md): How to add, edit, delete, and import courses in Ham.
+- [Developers](/developers.md): Overview of Ham developer projects and documentation.
+- [Download](/download.md): Download Ham for iOS and Android.
+- [Education Module](/developers/ham-rn/education.md): Education module for fetching course schedules and grades.
+- [Enable Automation](/handbook/automatic.md): Enable automation features like library auto-booking.
+- [Feedback](/handbook/bugfix.md): How to report bugs and provide feedback.
+- [Grades](/handbook/score.md): View grades, calculate GPA, and check grade distributions.
+- [Ham Connect](/developers/open-platform.md): Ham Connect SSO platform overview and capabilities.
+- [Ham React Native Components](/developers/ham-rn.md): Ham React Native component library for campus features.
+- [Ham Web](/developers/ham-web.md): Ham Web frontend architecture and features.
+- [Introduction](/handbook.md): Introduction to Ham and its features.
+- [Library](/handbook/library.md): How to use Ham for library seat reservations.
+- [Login Button Source Code](/developers/open-platform/login-button.md): Multi-platform Login with Ham button components (Vue, React, React Native, Android, iOS, HTML/CSS).
+- [Luojia E-Card](/handbook/pay.md): Quick access to Luojia E-Card campus payment QR code.
+- [OAuth 2.0 Full Integration Guide](/developers/open-platform/oauth2-guide.md): Step-by-step guide to integrate Ham SSO via OAuth2.
+- [Privacy Policy](/privacy.md): Ham privacy policy - data collection, storage, and usage.
+- [Schedule](/handbook/schedule.md): Manage schedule items with due-date reminders and calendar sync.
+- [Score Calculator Module](/developers/ham-rn/score-calc.md): GPA and credit calculation utilities using custom JavaScript scripts.
+- [Sports Facilities](/handbook/sport.md): How to book sports facilities with Ham.
+- [SSO OAuth2 Authorization](/developers/ham-web/sso-authorize.md): SSO OAuth2 authorization flow and API reference for Ham Web.
+- [Status](/handbook/status.md): Status page showing today's tasks, weather, library reservations, and classes.
+- [User Agreement](/privacy/user-policy.md): Ham user agreement - terms of service.
+- [User Center](/handbook/user-center.md): Manage your Ham account and settings.

@@ -1,0 +1,2740 @@
+---
+url: /about.md
+description: 'About Ham, security, privacy, and open-source status.'
+---
+
+# About
+
+### Is Ham safe?
+
+Ham does not send your student account and password to a third-party server for validation. Your account data is stored locally, and your phone connects directly to the university servers.
+
+Some features (like grade distribution) require a backend service. When data must be sent, it is only sent with your consent. Sensitive identifiers (such as student ID) are hashed before transmission, so we cannot identify individual users.
+
+### Why is it not open source (yet)?
+
+The project includes private credentials (push services, Apple developer account, etc.), so it is not open source for now. Ham is still completely free to use.
+
+If you have suggestions, feel free to reach out on [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions). Technical discussions are welcome too.
+
+---
+
+---
+url: /developers/open-platform/brand-assets.md
+description: 'Official Ham icons, brand colors, and usage guidelines.'
+---
+
+# Brand Assets
+
+This page provides Ham brand icon resources that you can use directly in your application to display the Ham login entry or brand identity.
+
+## Icon Resources
+
+Below are official Ham icons in various sizes:
+
+| Preview | Size | File |
+|:---:|:---:|:---:|
+|  | 64 × 64 | [ham-icon-64.png](/images/icons/ham-icon-64.png) |
+|  | 128 × 128 | [ham-icon-128.png](/images/icons/ham-icon-128.png) |
+|  | 256 × 256 | [ham-icon-256.png](/images/icons/ham-icon-256.png) |
+|  | 192 × 192 | [android-chrome-192x192.png](/images/icons/android-chrome-192x192.png) |
+|  | 512 × 512 | [android-chrome-512x512.png](/images/icons/android-chrome-512x512.png) |
+
+::: tip Usage Guidelines
+
+* Use **64×64** or **128×128** for button icons
+* Use **256×256** or larger for logos on display pages
+* Do not stretch, crop, or modify the icon's colors or proportions
+  :::
+
+## Brand Colors
+
+| Color | Value | Usage |
+|:---:|:---:|:---:|
+|  | `#4478a8` | Primary brand color / Button text color |
+|  | `#3a6a96` | Button hover state |
+|  | `#a8c8e8` | Dark theme text color |
+
+## Usage Guidelines
+
+**Do:**
+
+* Keep the icon's original aspect ratio — avoid stretching or compressing
+* Maintain adequate whitespace around the icon
+* Ensure sufficient contrast when placing on dark backgrounds
+
+**Don't:**
+
+* Modify the icon's colors
+* Overlay text or other elements on the icon
+* Use the icon to imply official Ham endorsement or certification
+
+## Related Links
+
+* [Login Button Source Code](/en/developers/open-platform/login-button) — Multi-platform "Login with Ham" button component source code
+* [Integration Guide](/en/developers/open-platform/oauth2-guide) — Complete OAuth2 integration guide
+
+---
+
+---
+url: /handbook/bus.md
+description: View real-time campus bus arrival information.
+---
+
+# Campus Bus
+
+::: tip Version requirements
+iOS: 1.3.2 (build >= 96)
+
+Android: 1.4.3
+:::
+
+You can view campus bus information with Ham.
+
+## Preparation
+
+Before using the campus bus feature, log in to your information portal account in "Me" -> "Information Portal Settings."
+
+## Status
+
+The "Campus Bus" card on the status page shows campus bus information for the nearest stop and updates automatically.
+
+## Dynamic Island / LiveActivity (iOS)
+
+You can add a Dynamic Island/LiveActivity to the campus bus card on the status page. This feature uses background location permission.
+
+---
+
+---
+url: /developers/ham-rn/cas.md
+description: CAS authentication module for WHU information portal login.
+---
+
+# CAS Authentication Module
+
+## User Entry Point
+
+Users trigger CAS login in the Ham app via:
+
+**Me → Manage Info Portal settings → Login / Re-login**
+
+When using education features (course query, grade query, etc.) for the first time without a portal login, the app guides users to the CAS login page.
+
+## Features
+
+CAS (Central Authentication Service) is the university's unified identity authentication system. The Ham React Native Components CAS module handles:
+
+1. Loading the university CAS login page via WebView
+2. Injecting custom JavaScript scripts for login form localization (multi-language support)
+3. Intercepting cookies after successful login
+4. Passing cookies back to the native side for subsequent education system requests
+
+## Registered Entry
+
+| Registration Name | Type | Description |
+| --- | --- | --- |
+| `RNCasMobileLogin` | Component | CAS mobile login view |
+
+## Code Structure
+
+### Business Logic (`business/cas`)
+
+* `api.ts` — CAS authentication API wrapper, handles HTTP interactions with the CAS server
+* `index.ts` — Module exports
+
+### UI Components (`components/cas`)
+
+* `CasMobileLoginView.tsx` — CAS mobile login interface, WebView-based
+
+## Workflow
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant App as Ham Native App
+    participant RN as ham-rn (RNCasMobileLogin)
+    participant CAS as CAS Server
+
+    User->>App: Me → Manage Info Portal settings → Login
+    App->>RN: Load RNCasMobileLogin component
+    RN->>CAS: WebView loads CAS login page
+    RN->>RN: Inject JS scripts (form localization)
+    User->>RN: Enter credentials and login
+    CAS-->>RN: Return login success + Cookie
+    RN->>App: Pass Cookie via NativeCasMobileLoginModule
+    App->>App: Save Cookie for subsequent education requests
+```
+
+## Related Native Modules
+
+| Module | Description |
+| --- | --- |
+| `NativeCasModule` | Request saved CAS Cookie |
+| `NativeCasMobileLoginModule` | Receive login success callback (student ID, password, Cookie) |
+
+---
+
+---
+url: /handbook/course.md
+description: 'How to add, edit, delete, and import courses in Ham.'
+---
+
+# Courses
+
+Ham provides a highly customizable timetable. You can import your courses into Ham, and it will remind you at the right time.
+
+## Add, edit, delete courses
+
+::: tip Before editing or deleting, please understand the terms below
+
+* **This class session**
+
+  A **single** class that occupies a continuous time slot within a week
+
+* **All sessions at the same time**
+
+  All sessions with the same time slot and the same course code
+
+* **This course**
+
+  All sessions with the same course code
+
+> **Example**
+>
+> Zhang San has Advanced Mathematics (Tue periods 2-4, Thu periods 6-8, weeks 1-17).
+>
+> In a given week, Tue 2-4 -> one class session
+>
+> Weeks 1-17, Tue 2-4 -> all sessions at the same time
+>
+> Weeks 1-17, Tue 2-4 and Thu 6-8 -> one course
+
+:::
+
+The course page supports four actions:
+
+### Tap
+
+Tap a class to view details.
+
+If the class is imported from the academic system, Ham shows the course type and credits.
+
+If the class is in Ham's grading system, Ham shows the grading distribution, course reviews, ratings, and the number of students who "want to take" it.
+
+You can add schedule items from the class details, and new items will be linked to the course. You can also view all schedule items related to the course here.
+
+### Long press
+
+Long press an empty slot to add or paste a class.
+
+Long press a class to operate on it:
+
+* **Edit**
+
+  Update the basic information for all sessions at the same time
+
+* **Copy / Cut**
+
+  Copy or cut only this class session
+
+* **Delete**
+
+  Delete based on your selection
+
+### Drag
+
+Drag a class to quickly change its time.
+
+## Timetable settings
+
+In the timetable settings page, you can set the semester start date, background image, or import a timetable.
+
+::: tip Reminder
+You must set the semester start date so Ham knows which term you are using and can remind you correctly.
+:::
+
+You can also set a background image, adjust class transparency, ~~and Gaussian blur transparency~~.
+
+You can also import timetables from the academic system by logging in via the information portal.
+
+## Widgets
+
+Ham provides timetable widgets. You can place a widget on your home screen to quickly view today's or tomorrow's classes.
+
+## Required permissions
+
+### Class reminders
+
+* Android:
+  Auto-start, notification permissions
+* iOS:
+  Notifications
+
+### Widgets
+
+* Android:
+  Auto-start
+
+---
+
+---
+url: /developers.md
+description: Overview of Ham developer projects and documentation.
+---
+
+# Developers
+
+Welcome to the Ham developer documentation! Ham currently includes the following projects:
+
+| Project | Description | Repository |
+| --- | --- | --- |
+| [Ham Connect](/en/developers/open-platform/) | Open platform OAuth 2.0 authorization service | — |
+| [Ham Web](/en/developers/ham-web/) | Web frontend for SSO authorization and more | [GitHub](https://github.com/whu-ham/ham-web) |
+| [Ham React Native Components](/en/developers/ham-rn/) | React Native component repository, integrated into native apps via OTA hot updates | [GitHub](https://github.com/whu-ham/ham-rn) |
+
+## Overview
+
+**Ham Connect** is the OAuth 2.0 authorization service provided by the Ham open platform, allowing third-party apps to securely obtain Ham user authorization and implement "Sign in with Ham" functionality.
+
+**Ham Web** is the web frontend for Ham, built with Next.js. It primarily serves the SSO single sign-on authorization flow (including QR code login and Passkey login) and acts as the web entry point for the Ham Connect platform.
+
+**Ham React Native Components** is the React Native component repository for the Ham app, integrated into native apps via OTA hot updates. It handles the UI and business logic for core features such as course schedule queries, grade queries, GPA calculation, and CAS authentication.
+
+## Contributing
+
+Open-source projects are licensed under the [MIT License](https://opensource.org/licenses/MIT). Community contributions are welcome. Please read each project's contributing guide before submitting a PR.
+
+---
+
+---
+url: /download.md
+description: Download Ham for iOS and Android.
+---
+
+# Download
+
+## Android
+
+## iOS
+
+---
+
+---
+url: /developers/ham-rn/education.md
+description: Education module for fetching course schedules and grades.
+---
+
+# Education Module
+
+The education module is the core business module of Ham React Native Components, responsible for fetching course schedules and grade data from the university's education system.
+
+## Course Query
+
+### User Entry Point
+
+**Me → Timetable → Settings → Fetch timetable → Via Info Portal**
+
+Users go to the "Me" page, enter the timetable, tap settings, select "Fetch timetable", then choose "Via Info Portal" to log in to the education system via CAS and automatically retrieve course schedule data.
+
+### Features
+
+The course query module fetches and parses course schedule data from the education system, converting HTML pages into structured course information.
+
+### Registered Entry
+
+| Registration Name | Type | Description |
+| --- | --- | --- |
+| `RNFetchCourseView` | Component | Course schedule query view |
+
+### Code Structure
+
+**Business Logic (`business/education/course`)**
+
+* `api.ts` — Course data request API, sends HTTP requests to the education system
+* `parser.ts` — HTML response parser, converts education system pages into structured data
+* `color.ts` — Course color assignment logic, assigns different display colors to courses
+* `type.ts` — Type definitions (`CourseEntity`, `CourseGridEntity`)
+
+**UI Components (`components/education/course`)**
+
+* `FetchCourseView.tsx` — Course fetch view, displays progress and results
+
+### Workflow
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant App as Ham Native App
+    participant RN as ham-rn (RNFetchCourseView)
+    participant Edu as Education System
+
+    User->>App: Me → Timetable → Settings → Fetch timetable → Via Info Portal
+    App->>RN: Load RNFetchCourseView component
+    RN->>RN: Get CAS Cookie via NativeCasModule
+    RN->>Edu: Request course data using Cookie
+    Edu-->>RN: Return HTML page
+    RN->>RN: parser.ts parses HTML into course list
+    RN->>App: Pass data via NativeEducationModule.onGetCourseList
+    App->>App: Save course data to local database
+```
+
+***
+
+## Grade Query
+
+### User Entry Point
+
+**Me → Scores → Fetch Scores → Verify via Info Portal**
+
+Users go to the "Me" page, enter Scores, tap "Fetch Scores", then choose "Verify via Info Portal" to log in to the education system via CAS and automatically retrieve grades.
+
+### Features
+
+The grade query module fetches student grade data from the education system, including course name, credits, score, instructor, and more.
+
+### Registered Entry
+
+| Registration Name | Type | Description |
+| --- | --- | --- |
+| `RNFetchScoreView` | Component | Grade query view |
+
+### Code Structure
+
+**Business Logic (`business/education/score`)**
+
+* `api.ts` — Grade data request API and user info retrieval
+* `parser.ts` — Grade data parser
+* `type.ts` — Type definitions (`ScoreEntity`, `ScoreRequestUserInfo`)
+
+**UI Components (`components/education/score`)**
+
+* `FetchScoreView.tsx` — Grade fetch view, displays progress and results
+
+### Workflow
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant App as Ham Native App
+    participant RN as ham-rn (RNFetchScoreView)
+    participant Edu as Education System
+
+    User->>App: Me → Scores → Fetch Scores → Verify via Info Portal
+    App->>RN: Load RNFetchScoreView component
+    RN->>RN: Get CAS Cookie via NativeCasModule
+    RN->>Edu: Request grade data using Cookie
+    Edu-->>RN: Return grade page
+    RN->>RN: parser.ts parses grade data
+    RN->>App: Pass data via NativeEducationModule.onGetScoreList
+    App->>App: Save grade data to local database
+```
+
+***
+
+## Callable Module
+
+### Features
+
+`RNEducationCallable` is a callable module registered via `BatchedBridge.registerCallableModule`. Unlike regular components, the native side can invoke its methods directly without rendering a UI component.
+
+### Registered Entry
+
+| Registration Name | Type | Description |
+| --- | --- | --- |
+| `RNEducationCallable` | Callable Module | Education data fetching |
+
+### Methods
+
+* `updateCourseList(year, semester)` — Logs into the education system and fetches the course list for the specified year/semester, returning results via `NativeEducationModule.onGetCourseList` callback
+* `updateScoreList()` — Logs into the education system and fetches the grade list, returning results via `NativeEducationModule.onGetScoreList` callback
+
+***
+
+## Related Native Modules
+
+| Module | Description |
+| --- | --- |
+| `NativeCasModule` | Request saved CAS Cookie for education system login |
+| `NativeEducationModule` | Education data callbacks (course list, grade list, semester config) |
+
+---
+
+---
+url: /handbook/automatic.md
+description: Enable automation features like library auto-booking.
+---
+
+# Enable Automation
+
+Automation is one of Ham's key features.
+
+Currently supported automation features:
+
+* Quick library booking
+* \~~Running (Sunshine Sports platform is offline)~~
+* \~~Venue booking (not supported)~~
+
+## Android
+
+Requirements to enable automation:
+
+* Enable Ham auto-start
+* Configure and enable Ham automation
+
+After enabling automation, Ham triggers automation at the scheduled time every day.
+
+If notifications are enabled, Ham will notify you when automation starts and when it finishes.
+
+## iOS
+
+You can add actions in Shortcuts, such as "Quick book library." Then add that shortcut in Shortcuts automation.
+
+---
+
+---
+url: /handbook/bugfix.md
+description: How to report bugs and provide feedback.
+---
+
+# Feedback
+
+I test on as many devices as possible, but due to limited time and resources, many devices are still untested.
+
+Feel free to provide feedback on [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions).
+
+---
+
+---
+url: /handbook/score.md
+description: 'View grades, calculate GPA, and check grade distributions.'
+---
+
+# Grades
+
+You can use Ham to view your course grades, calculate your GPA or comprehensive evaluation score, and check grade distributions.
+
+## Comprehensive evaluation score types
+
+Different schools use different calculation methods. Ham automatically identifies general education, public, required, elective, and cross-major courses and calculates the score accordingly.
+
+Ham provides two calculation methods depending on the school:
+
+> B1: Required and general education course grades
+>
+> B2: Elective and cross-major course grades
+
+### New F2 calculation
+
+Formula:
+
+```
+F2 = B1 + B2 x 0.002
+Where: B2 uses up to 8 courses
+```
+
+Under this method, Ham selects up to 8 electives with the highest F2 contribution.
+
+You can tap "Select" to see which elective grades were chosen. Or long press to manually choose grades for the comprehensive score.
+
+If you do not want a course included, you can enable or disable it in "Grade Settings" -> "Edit grade inclusion."
+
+Schools currently using this method:
+
+* School of Computer Science
+
+### Legacy F2 calculation
+
+Formula:
+
+```
+F2 = B1 x 0.98 + B2 x 0.02
+```
+
+Schools currently using this method:
+
+* School of Resource and Environmental Science
+
+### Calculate with JavaScript
+
+Ham supports custom JavaScript scripts for comprehensive score calculations. In "Grades" -> "Settings" -> "Select calculation method," you can choose scripts shared by other users.
+
+Shared scripts come from:
+
+* Built-in scripts
+* [Github](https://github.com/whu-ham/ScoreCalculator)
+
+## Credits and GPA
+
+Tap "Select" to enter custom selection mode. You can choose courses freely to calculate credits or GPA.
+
+\~~To avoid miscalculations (for example, a course is not counted for credits in the curriculum), Ham did not provide multi-select. You must verify each course's credit value to ensure the GPA matches the school's calculation.~~
+
+Ham now supports multi-select grades, but you still need to verify each course's credits.
+
+## Security and biometrics
+
+To prevent others from seeing your grades, biometrics are enabled by default. You must pass biometric authentication (Face ID, fingerprint, etc.) to view grades.
+
+If you find this too cumbersome, you can disable it in settings.
+
+## Grade distribution
+
+You can use Ham to check grade distributions for courses.
+
+### Before using
+
+To use grade distribution, you must:
+
+* Have retrieved your grades
+* Agree to upload anonymous grades to Ham's server
+
+Ham de-identifies uploaded data. Your student ID is not sent directly; a hashed identifier is used instead. Therefore, your grades cannot be directly tied to you on the server.
+
+Every time you open "Grade Distribution," Ham uploads your grades to the server to provide references for other users.
+
+You can refuse the upload, but then you cannot use grade distribution.
+
+### Search grade distribution
+
+Enter a course name or instructor name to query a specific course or instructor.
+
+You do not need to type the full course name. For example, for "Mao Zedong Thought and the Theoretical System of Socialism with Chinese Characteristics," entering "Mao" is enough.
+
+### Course reviews
+
+You can post anonymous reviews for courses you have taken. After posting, other students can see your comments and ratings.
+
+You can only view others' reviews after you have posted your own.
+
+### Want to take
+
+If you are interested in a course, tap "Want to take" on the course details page.
+
+## Required permissions
+
+### Biometrics
+
+* iOS: Face ID
+* Android: Device passcode enabled (not a permission, but required)
+
+---
+
+---
+url: /developers/open-platform.md
+description: Ham Connect SSO platform overview and capabilities.
+---
+
+# Ham Connect
+
+Ham Connect is the OAuth 2.0 authorization service provided by the Ham Open Platform, allowing third-party applications to securely obtain authorized Ham user information.
+
+## Overview
+
+Ham Connect is built on the standard **OAuth 2.0 Authorization Code Grant** (RFC 6749 §4.1). Third-party applications can implement "Sign in with Ham" functionality through Ham Connect to obtain basic user information after authorization.
+
+### Supported Scopes
+
+| Scope | Description | Returned Fields |
+|---|---|---|
+| `profile` | Access user nickname and avatar | `nickname`, `avatar_url` |
+| `is_student` | Access whether the user is a student | `is_student` (bool) |
+
+> `open_id` (the user's unique identifier within the current application) is always returned and does not require an additional scope.
+
+## OAuth2 Interaction Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant TP as Third-party App
+    participant APP as Ham
+    participant BE as Ham Open Platform
+
+    U->>TP: Click "Sign in with Ham"
+    TP->>TP: Generate random state, bind to session
+    TP->>APP: Open Universal Link to launch Ham
+    APP->>U: Display authorization page (app info + scope list)
+    U->>APP: Tap "Approve"
+    APP->>TP: Redirect to redirect_uri with code and state
+    TP->>TP: Verify state consistency
+    TP->>BE: POST /oauth/token (code + client credentials)
+    BE->>TP: Return access_token
+    TP->>BE: GET /oauth/userinfo (Bearer token + client credentials)
+    BE->>TP: Return open_id / nickname / avatar_url etc.
+    TP->>U: Login successful
+```
+
+### Flow Description
+
+1. **Initiate Authorization**: The third-party app launches Ham via Universal Link with `client_id`, `scope`, `state`, and `redirect_uri` parameters
+2. **User Authorization**: The user reviews the authorization details in Ham and approves
+3. **Receive Authorization Code**: Ham redirects to the third-party app's `redirect_uri` with a one-time `code`
+4. **Exchange Token**: The third-party **server** exchanges the `code` + `client_id` + `client_secret` for an `access_token`
+5. **Fetch User Info**: The third-party **server** uses the `access_token` + client credentials to request user information
+
+### Key Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `https://ham.nowcent.cn/sso-authorize` | Authorization entry (Universal Link), supports mobile, desktop (e.g. QR code scanning), and Passkey authentication |
+| `https://open-api.ham.nowcent.cn/oauth/token` | Token exchange |
+| `https://open-api.ham.nowcent.cn/oauth/userinfo` | Fetch user info |
+
+### Token Lifetime
+
+| Token | Lifetime | Notes |
+|---|---|---|
+| Authorization Code | 5 minutes | One-time use, invalidated after exchange |
+| Access Token | 2 hours | Re-authorization required after expiry |
+| Refresh Token | Not provided | — |
+
+## Obtaining client\_id and client\_secret
+
+`client_id` and `client_secret` are the required credentials for integrating with Ham Connect:
+
+* **client\_id**: The public identifier of the application, safe to use on the frontend
+* **client\_secret**: The confidential credential of the application, **must only be used on the server side** — never expose it in frontend code, mobile app bundles, or public repositories
+
+::: warning How to Apply
+Currently, `client_id` and `client_secret` must be obtained by contacting the developers.
+
+Please reach out via [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions) and provide the following information:
+
+1. Application name and description
+2. Callback URL (`redirect_uri`) whitelist
+3. Required scopes
+   :::
+
+## Security Notes
+
+* All API calls must use **HTTPS**
+* `client_secret` and `access_token` must **only be stored and used on the server side**
+* Always use and verify the `state` parameter to prevent CSRF attacks
+* Follow the **principle of least privilege** — only request the scopes your business needs
+* Use `open_id` as the unique user identifier; do not rely on `nickname` for uniqueness
+
+::: tip Full Documentation
+For complete API specifications, error codes, and security best practices, please refer to the [Integration Guide](./oauth2-guide).
+:::
+
+---
+
+---
+url: /developers/ham-rn.md
+description: Ham React Native component library for campus features.
+---
+
+# Ham React Native Components
+
+[Ham React Native Components](https://github.com/whu-ham/ham-rn) is the React Native component repository for the Ham app, integrated into iOS / Android native apps via OTA (Over-The-Air) hot updates. It handles the UI rendering and business logic for CAS authentication, education system features (course and grade queries), GPA calculation, and more.
+
+## Tech Stack
+
+* React Native 0.83 (New Architecture)
+* TypeScript
+* Jotai (state management)
+* i18next (i18n — Chinese / English / Japanese)
+* ESLint + Prettier (code quality)
+* pnpm (package manager)
+* [hot-updater](https://github.com/gronxb/hot-updater) (OTA hot updates)
+
+## Getting Started
+
+### Prerequisites
+
+* Node.js >= 18
+* pnpm
+* Xcode (for iOS)
+* Android Studio (for Android)
+* CocoaPods
+
+### Installation & Running
+
+```bash
+# Install dependencies
+pnpm install
+
+# iOS additional setup
+cd ios && pod install && cd ..
+
+# Start Metro bundler
+pnpm start
+
+# Run on iOS
+pnpm ios
+
+# Run on Android
+pnpm android
+```
+
+## Project Structure
+
+```
+src/
+├── business/          # Business logic layer
+│   ├── cas/           # CAS authentication
+│   └── education/     # Education system (course, score, score calc)
+├── components/        # React Native UI components
+│   ├── cas/           # CAS login views
+│   ├── common/        # Common components
+│   ├── education/     # Education-related views
+│   └── scorecalc/     # Score calculator views
+├── i18n/              # Internationalization resources
+├── modules/           # Native module specs (Turbo Modules)
+├── resources/         # Static assets (images, HTML)
+└── utils/             # Utilities (color, request, UI)
+```
+
+## Module Overview
+
+Ham React Native Components contains the following core modules. Click to view detailed documentation:
+
+| Module | User Entry Point | Description |
+| --- | --- | --- |
+| [CAS Authentication](./cas) | Me → Manage Info Portal settings → Login / Re-login | University identity authentication via WebView |
+| [Education Module](./education) | Me → Timetable → Fetch timetable / Me → Scores → Fetch Scores | Fetch course schedules and grades from the education system |
+| [Score Calculator](./score-calc) | Me → Scores → Settings → Use other calculation (JavaScript-based) → Choose calculation | Custom GPA calculation scripts based on JavaScript |
+
+### Common Component
+
+`RNCommon` is an invisible background component loaded at app startup. It is responsible for:
+
+* Initializing [hot-updater](https://github.com/gronxb/hot-updater) OTA hot update listener
+* Listening for native locale change events and syncing the i18next language setting
+
+### Native Module Specs
+
+Ham React Native Components uses React Native Turbo Modules to communicate with the native side. Here are the modules and their purposes:
+
+| Module | Description |
+| --- | --- |
+| `NativeCasModule` | Get CAS Cookie (`requestCasCookie()`) |
+| `NativeCasMobileLoginModule` | CAS login success callback, passes student ID, password and cookie back to native (`onRequestSuccess(studentId, password, cookie)`) |
+| `NativeCommonModule` | Common functions: open URL (`openUrl`), toast notification (`showToast`), get locale (`getLocale`), listen for locale changes (`onLocaleChanged`) |
+| `NativeEducationModule` | Education data callbacks: course list (`onGetCourseList`), grade list (`onGetScoreList`), get semester config (`getCourseConfig`) |
+| `NativeScoreCalcModule` | Score calculation script management: get current calculation (`getCurrentCalc`), select calculation (`selectCalc`), view details (`openDetail`), test script (`testItem`), listen for calculation change events (`onSetScoreJsCalcItem`) |
+| `NativeLog` | Logging: info log (`i(tag, message)`), error log (`e(tag, message)`) |
+
+Ham React Native Components only contains the TypeScript-side interface declarations (Turbo Module Specs). The native implementations reside in the iOS / Android native projects.
+
+### Internationalization
+
+Multi-language support via i18next. Translation files are located in the `i18n/` directory, supporting Chinese, English, and Japanese.
+
+### Utilities
+
+* `utils/color/` — Color processing utilities
+* `utils/request/` — Network request wrapper
+* `utils/ui/` — UI utility components (e.g., Card)
+
+## CI/CD
+
+GitHub Actions runs automatically on PRs and pushes to `main`:
+
+* **Lint** — ESLint check
+* **Compile Check** — TypeScript type checking
+* **Android Build** — Debug APK build verification
+* **iOS Build** — Debug build verification
+
+## License
+
+Ham React Native Components is [MIT licensed](https://opensource.org/licenses/MIT).
+
+---
+
+---
+url: /developers/ham-web.md
+description: Ham Web frontend architecture and features.
+---
+
+# Ham Web
+
+[Ham Web](https://github.com/whu-ham/ham-web) is the web frontend for Ham, primarily serving the SSO single sign-on authorization flow and acting as the web entry point for the Ham Connect platform.
+
+## Where It Is Used
+
+Once deployed, Ham Web serves as the web service endpoint for the Ham Connect platform. It is used in the following scenarios:
+
+* **SSO Authorization Page** — When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to Ham Web's authorization page for login and consent confirmation
+* **QR Code Login** — Users can log in on the web by scanning a QR code with the Ham app
+* **Passkey Login** — Supports WebAuthn / Passkey passwordless login
+* **Mobile H5 Fallback** — When users don't have the Ham native app installed, provides a web-based install prompt and Passkey login option
+
+## Tech Stack
+
+* **Framework**: Next.js 16 (App Router) + React 19 + TypeScript
+* **Styling**: Tailwind CSS v4 + HeroUI v3
+* **State Management**: Jotai + React Redux
+* **i18n**: next-intl (Chinese / English / Japanese)
+* **Deployment**: Cloudflare Pages (via OpenNext)
+* **Tooling**: ESLint v9 + Prettier + pnpm
+
+## Getting Started
+
+### Prerequisites
+
+* Node.js >= 20
+* pnpm
+
+### Installation & Running
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start dev server (Turbopack)
+pnpm dev
+
+# Production build
+pnpm build
+pnpm start
+
+# Cloudflare Pages build
+pnpm build:cf
+
+# Lint
+pnpm lint
+```
+
+Dev server runs at `http://localhost:3000`.
+
+## Project Structure
+
+```
+app/                # Next.js App Router entry
+  api/              # API routes
+    auth/           # Auth APIs (login, logout, refresh, passkey, QR code)
+    sso/            # SSO APIs (consent confirmation, consent info)
+  sso-authorize/    # SSO authorization page (login view, QR login, passkey login)
+components/         # Shared UI components
+  LanguageSwitcher  # Language switcher
+  ThemeSwitcher     # Theme switcher
+  SearchBar         # Search bar
+i18n/               # next-intl runtime config
+messages/           # Locale message catalogs (en.json / zh.json / ja.json)
+services/           # API / service layer
+store/              # State management (locale, theme)
+public/             # Static assets
+```
+
+## Development Guide
+
+### Adding New UI Strings
+
+Use `next-intl` for internationalization. When adding new strings, update all three translation files:
+
+* `messages/zh.json`
+* `messages/en.json`
+* `messages/ja.json`
+
+### API Routes
+
+Ham Web's API routes act as a backend proxy, forwarding requests to the Ham backend service:
+
+* `/api/auth/*` — Authentication (login, logout, token refresh, passkey, QR code)
+* `/api/sso/*` — SSO authorization (consent info query, consent confirmation)
+
+### Theme & Language
+
+* Supports light / dark / system theme modes
+* Supports Chinese / English / Japanese, with user preference persisted via cookies
+
+## CI/CD
+
+The project uses GitHub Actions for continuous integration and deploys to Cloudflare Pages.
+
+## Contributing
+
+All contributors must follow these rules:
+
+1. Run `pnpm lint` and `pnpm build` before committing
+2. Commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/)
+3. Commit messages and code comments must be in English
+
+## License
+
+Ham Web is [MIT licensed](https://opensource.org/licenses/MIT).
+
+---
+
+---
+url: /handbook.md
+description: Introduction to Ham and its features.
+---
+
+# Introduction
+
+Welcome to Ham!
+
+We hope Ham can be a helpful tool for your studies.
+
+---
+
+---
+url: /handbook/library.md
+description: How to use Ham for library seat reservations.
+---
+
+# Library
+
+You can use Ham to book library seats easily.
+
+## Preparation
+
+Before using the library features, you need:
+
+* Information portal account
+
+### Prepare your information portal account
+
+The library seat reservation system authenticates via the information portal (CAS) single sign-on. You need to set up your information portal account and password in Ham. If you forget your information portal credentials, please reset them on the information portal website.
+
+## Seat map booking
+
+Seat map booking lets you view availability by library, room, and seat, and book directly.
+
+Seat map booking is suitable when:
+
+* You want to go to the library today but have no reservation
+* You do not care which room or seat you get
+
+Seat map booking is the first tab in the library section (it was called "Reservation" in older versions).
+
+::: tip Note
+Seat map booking does not re-check availability before confirming. If another student books the seat after you select it, Ham will not automatically choose a nearby seat.
+:::
+
+## Quick booking
+
+You can save favorite seats and book them directly.
+
+Quick booking is suitable when:
+
+* You often go to the library and prefer a fixed seat
+* You need automation booking
+* You want to go to a specific room on short notice
+
+After you have booked a seat in Ham or selected a "preferred seat," the quick booking tab appears on the library home page. You can also tap the seat or time to temporarily change the seat and time.
+
+::: tip Note
+Quick booking tries to match your preferred seat settings. If the preferred seat fails, Ham will immediately select a nearby seat.
+:::
+
+## Preferred seat
+
+The default seat used in quick booking.
+
+You can preselect the time, seat, and preferences. Each time you open the library page, quick booking will use your settings.
+
+Preferred seat settings are in "Library Settings."
+
+## Reservation status
+
+When Ham finds an active reservation, it will be shown on the library home page and the status page.
+
+You can change the reservation time or cancel it from the status card.
+
+If you booked a long session and need to leave for a while (longer than the library allows), you can change the reservation time before leaving so you can keep the seat when you return.
+
+After Ham fetches your reservation status, it automatically adds the event to the system calendar and reminds you 10 minutes before entry. (iOS)
+
+Reservation status supports Dynamic Island and LiveActivity. Active reservations will be pinned in the notification area, showing the seat number, location, and time. (iOS)
+
+## History
+
+You can view your library reservation history.
+
+## Widgets
+
+You can place a widget on the home screen to remind you of the reservation location and time, or your temporary leave time.
+
+You can set the widget refresh interval, but if it is too frequent, it may trigger a temporary library ban (15 minutes is generally recommended).
+
+## Other library settings
+
+### Update base data
+
+Generally, when you enter the reservation page, Ham uses local room data to reduce network requests and speed up booking. Each time you enter "Library," Ham tries to update the base data.
+
+* Update from the library system
+
+This option logs in to the library system on the device to fetch base data.
+
+### Reset
+
+If the library feature behaves abnormally, tap "Reset."
+
+### Automation (Android)
+
+First, set your preferred seat in Ham. Automation settings are in "Me" -> "Automation." After enabling it, Ham will book the preferred seat at the scheduled time. It uses the system time to decide whether to book for tomorrow.
+
+### Automation (iOS)
+
+First, set your preferred seat in Ham, then create a Personal Automation in Shortcuts: select a time, add the action "App" -> "Ham" -> "Quick book library," and disable "Ask Before Running." Ham will then book your preferred seat at the scheduled time. It uses the system time to decide whether to book for tomorrow.
+
+### Dynamic Island / LiveActivity
+
+Eligible reservations will appear on the Dynamic Island at the appropriate time.
+
+## Required permissions
+
+### Automation
+
+* Android: Auto-start
+
+### Widgets
+
+* Android: Auto-start
+
+---
+
+---
+url: /developers/open-platform/login-button.md
+description: >-
+  Multi-platform Login with Ham button components (Vue, React, React Native,
+  Android, iOS, HTML/CSS).
+---
+
+# Login Button Source Code
+
+This page provides design guidelines, style previews, and multi-platform source code examples for the "Login with Ham" button, helping third-party apps quickly integrate the Ham SSO login entry.
+
+## Design Guidelines
+
+* The button should clearly display the Ham logo and "Login with Ham" text
+* Recommended light grey (`#e0e0e0`) as button background, brand blue (`#4478a8`) as text color
+* Button opacity reduces to `0.65` on hover and `0.4` on press, with linear transition animation
+* Suggested border radius: `12px` with moderate padding
+* For icon resources, see the [Brand Assets](/en/developers/open-platform/brand-assets) page
+
+## Style Preview
+
+### Light Theme
+
+### Dark Theme
+
+## Web
+
+Browser-based implementations, including popular frontend framework components and a plain HTML/CSS solution.
+
+### Vue / React Components
+
+Ready-to-use login button components with configurable props like `size` and `dark`. Import directly into your project.
+
+::: code-group
+
+```vue [Vue 3]
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+
+const props = withDefaults(defineProps<{
+  size?: 'small' | 'medium' | 'large'
+  dark?: boolean
+  authorizeUrl?: string
+}>(), {
+  size: 'medium',
+  dark: false,
+})
+
+const emit = defineEmits<{
+  click: [event: MouseEvent]
+}>()
+
+const sizeConfig = computed(() => {
+  const configs = {
+    small: { padding: '6px 14px', fontSize: '13px', iconSize: 18, gap: '6px' },
+    medium: { padding: '10px 20px', fontSize: '15px', iconSize: 22, gap: '8px' },
+    large: { padding: '14px 28px', fontSize: '17px', iconSize: 26, gap: '10px' },
+  }
+  return configs[props.size]
+})
+
+const buttonStyle = computed(() => {
+  const base = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: sizeConfig.value.gap,
+    padding: sizeConfig.value.padding,
+    fontSize: sizeConfig.value.fontSize,
+    fontWeight: '500',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    textDecoration: 'none',
+    border: 'none',
+  }
+
+  return {
+    ...base,
+    background: props.dark ? '#2a2a3e' : '#e0e0e0',
+    color: props.dark ? '#a8c8e8' : '#4478a8',
+  }
+})
+
+const isHovering = ref(false)
+const isActive = ref(false)
+
+const opacity = computed(() => {
+  if (isActive.value) return 0.4
+  if (isHovering.value) return 0.65
+  return 1
+})
+
+function handleClick(event: MouseEvent) {
+  emit('click', event)
+  if (props.authorizeUrl) {
+    window.location.href = props.authorizeUrl
+  }
+}
+</script>
+
+<template>
+  <button
+    :style="{ ...buttonStyle, opacity, transition: 'opacity 0.2s linear' }"
+    @click="handleClick"
+    @mouseenter="isHovering = true"
+    @mouseleave="isHovering = false; isActive = false"
+    @mousedown="isActive = true"
+    @mouseup="isActive = false"
+  >
+    <img
+      src="https://your-domain.com/images/icons/ham-icon-64.png"
+      :width="sizeConfig.iconSize"
+      :height="sizeConfig.iconSize"
+      alt="Ham"
+      style="border-radius: 4px;"
+    />
+    <span>Login with Ham</span>
+  </button>
+</template>
+```
+
+```tsx [React]
+import React, { CSSProperties, useMemo } from 'react'
+
+interface HamLoginButtonProps {
+  size?: 'small' | 'medium' | 'large'
+  dark?: boolean
+  authorizeUrl?: string
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void
+}
+
+const sizeConfigs = {
+  small: { padding: '6px 14px', fontSize: '13px', iconSize: 18, gap: '6px' },
+  medium: { padding: '10px 20px', fontSize: '15px', iconSize: 22, gap: '8px' },
+  large: { padding: '14px 28px', fontSize: '17px', iconSize: 26, gap: '10px' },
+}
+
+export default function HamLoginButton({
+  size = 'medium',
+  dark = false,
+  authorizeUrl,
+  onClick,
+}: HamLoginButtonProps) {
+  const config = sizeConfigs[size]
+
+  const buttonStyle = useMemo<CSSProperties>(() => {
+    const base: CSSProperties = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: config.gap,
+      padding: config.padding,
+      fontSize: config.fontSize,
+      fontWeight: 500,
+      borderRadius: '12px',
+      cursor: 'pointer',
+      transition: 'opacity 0.2s linear',
+      textDecoration: 'none',
+    }
+
+    return {
+      ...base,
+      background: dark ? '#2a2a3e' : '#e0e0e0',
+      color: dark ? '#a8c8e8' : '#4478a8',
+    }
+  }, [dark, config])
+
+  const [opacity, setOpacity] = React.useState(1)
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    onClick?.(event)
+    if (authorizeUrl) {
+      window.location.href = authorizeUrl
+    }
+  }
+
+  return (
+    <button
+      style={{ ...buttonStyle, opacity }}
+      onClick={handleClick}
+      onMouseEnter={() => setOpacity(0.65)}
+      onMouseLeave={() => { setOpacity(1) }}
+      onMouseDown={() => setOpacity(0.4)}
+      onMouseUp={() => setOpacity(0.65)}
+    >
+      <img
+        src="https://your-domain.com/images/icons/ham-icon-64.png"
+        width={config.iconSize}
+        height={config.iconSize}
+        alt="Ham"
+        style={{ borderRadius: '4px' }}
+      />
+      <span>Login with Ham</span>
+    </button>
+  )
+}
+```
+
+:::
+
+::: warning Note
+Replace the icon URL `https://your-domain.com/images/icons/ham-icon-64.png` with your actual hosted icon address, or download the icon file to your project and use a local path.
+:::
+
+### Usage Example
+
+::: code-group
+
+```vue [Vue 3]
+<script setup lang="ts">
+import HamLoginButton from './HamLoginButton.vue'
+
+const state = crypto.randomUUID()
+sessionStorage.setItem('ham_oauth_state', state)
+
+const params = new URLSearchParams({
+  client_id: 'your_client_id',
+  scope: 'profile,is_student',
+  state,
+  redirect_uri: 'https://your-app.example.com/callback',
+})
+const authorizeUrl = `https://ham.nowcent.cn/sso-authorize?${params.toString()}`
+</script>
+
+<template>
+  <div class="login-page">
+    <HamLoginButton :authorize-url="authorizeUrl" />
+    <HamLoginButton dark :authorize-url="authorizeUrl" />
+  </div>
+</template>
+```
+
+```tsx [React]
+import HamLoginButton from './HamLoginButton'
+
+function LoginPage() {
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('ham_oauth_state', state)
+
+  const params = new URLSearchParams({
+    client_id: 'your_client_id',
+    scope: 'profile,is_student',
+    state,
+    redirect_uri: 'https://your-app.example.com/callback',
+  })
+  const authorizeUrl = `https://ham.nowcent.cn/sso-authorize?${params.toString()}`
+
+  return (
+    <div className="login-page">
+      <HamLoginButton authorizeUrl={authorizeUrl} />
+      <HamLoginButton dark authorizeUrl={authorizeUrl} />
+    </div>
+  )
+}
+```
+
+:::
+
+### Plain HTML/CSS
+
+No framework dependencies — suitable for static pages or lightweight projects.
+
+```html
+<a
+  href="https://ham.nowcent.cn/sso-authorize?client_id=xxx&scope=profile,is_student&state=yyy&redirect_uri=https%3A%2F%2Fyour-app.example.com%2Fcallback"
+  class="ham-login-btn"
+>
+  <img src="/images/icons/ham-icon-64.png" width="22" height="22" alt="Ham" />
+  <span>Login with Ham</span>
+</a>
+
+<style>
+.ham-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #e0e0e0;
+  color: #4478a8;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s linear;
+}
+.ham-login-btn:hover { opacity: 0.65; }
+.ham-login-btn:active { opacity: 0.4; }
+.ham-login-btn img { border-radius: 4px; }
+</style>
+```
+
+## App (React Native / Android / iOS)
+
+Mobile native implementations covering the cross-platform React Native framework, Android (Jetpack Compose), and iOS (SwiftUI).
+
+::: code-group
+
+```tsx [React Native]
+import React from 'react'
+import {
+  TouchableOpacity, Text, Image, StyleSheet, Linking,
+  ViewStyle, TextStyle,
+} from 'react-native'
+
+interface HamLoginButtonProps {
+  size?: 'small' | 'medium' | 'large'
+  authorizeUrl?: string
+  onPress?: () => void
+}
+
+const sizeConfigs = {
+  small: { paddingV: 6, paddingH: 14, fontSize: 13, iconSize: 18, gap: 6 },
+  medium: { paddingV: 10, paddingH: 20, fontSize: 15, iconSize: 22, gap: 8 },
+  large: { paddingV: 14, paddingH: 28, fontSize: 17, iconSize: 26, gap: 10 },
+}
+
+export default function HamLoginButton({
+  size = 'medium', authorizeUrl, onPress,
+}: HamLoginButtonProps) {
+  const config = sizeConfigs[size]
+
+  const handlePress = () => {
+    onPress?.()
+    if (authorizeUrl) Linking.openURL(authorizeUrl)
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.button, {
+        paddingVertical: config.paddingV,
+        paddingHorizontal: config.paddingH,
+        gap: config.gap,
+        backgroundColor: '#e0e0e0',
+      }]}
+      activeOpacity={0.4}
+      onPress={handlePress}
+    >
+      <Image
+        source={require('./assets/ham-icon-64.png')}
+        style={{ width: config.iconSize, height: config.iconSize, borderRadius: 4 }}
+      />
+      <Text style={[styles.text, {
+        fontSize: config.fontSize,
+        color: '#4478a8',
+      }]}>
+        Login with Ham
+      </Text>
+    </TouchableOpacity>
+  )
+}
+
+const styles = StyleSheet.create({
+  button: { flexDirection: 'row', alignItems: 'center', borderRadius: 12 } as ViewStyle,
+  text: { fontWeight: '500' } as TextStyle,
+})
+```
+
+```kotlin [Android (Jetpack Compose)]
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+
+private val HamBlue = Color(0xFF4478A8)
+
+@Composable
+fun HamLoginButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFFE0E0E0),
+            contentColor = HamBlue,
+        ),
+    ) {
+        HamButtonContent(textColor = HamBlue)
+    }
+}
+
+@Composable
+private fun HamButtonContent(textColor: Color = Color.White) {
+    Image(
+        painter = painterResource(id = R.drawable.ham_icon_64),
+        contentDescription = "Ham",
+        modifier = Modifier.size(22.dp),
+    )
+    Spacer(modifier = Modifier.width(8.dp))
+    Text(
+        text = "Login with Ham",
+        fontSize = 15.sp,
+        fontWeight = FontWeight.Medium,
+        color = textColor,
+    )
+}
+
+
+```
+
+```swift [iOS (SwiftUI)]
+import SwiftUI
+
+struct HamLoginButton: View {
+
+    enum Size {
+        case small, medium, large
+        var padding: EdgeInsets {
+            switch self {
+            case .small:  return EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14)
+            case .medium: return EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20)
+            case .large:  return EdgeInsets(top: 14, leading: 28, bottom: 14, trailing: 28)
+            }
+        }
+        var fontSize: CGFloat {
+            switch self { case .small: return 13; case .medium: return 15; case .large: return 17 }
+        }
+        var iconSize: CGFloat {
+            switch self { case .small: return 18; case .medium: return 22; case .large: return 26 }
+        }
+    }
+
+    let size: Size
+    let action: () -> Void
+    private let hamBlue = Color(red: 0x44/255, green: 0x78/255, blue: 0xa8/255)
+
+    init(size: Size = .medium, action: @escaping () -> Void) {
+        self.size = size
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image("ham-icon-64")
+                    .resizable()
+                    .frame(width: size.iconSize, height: size.iconSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                Text("Login with Ham")
+                    .font(.system(size: size.fontSize, weight: .medium))
+            }
+            .padding(size.padding)
+        }
+        .buttonStyle(HamButtonStyle(hamBlue: hamBlue))
+    }
+}
+
+private struct HamButtonStyle: ButtonStyle {
+    let hamBlue: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(hamBlue)
+            .background(Color(red: 0xE0/255, green: 0xE0/255, blue: 0xE0/255))
+            .cornerRadius(12)
+            .opacity(configuration.isPressed ? 0.4 : 1.0)
+            .animation(.linear(duration: 0.2), value: configuration.isPressed)
+    }
+}
+```
+
+:::
+
+::: warning Note
+Replace the icon URL `https://your-domain.com/images/icons/ham-icon-64.png` with your actual hosted icon address, or download the icon file to your project and use a local path.
+:::
+
+---
+
+---
+url: /handbook/pay.md
+description: Quick access to Luojia E-Card campus payment QR code.
+---
+
+# Luojia E-Card
+
+::: tip Version requirements
+iOS: 1.3.2 (build >= 96)
+
+Android: 1.4.3
+:::
+
+You can use the Luojia E-Card with Ham.
+
+## Preparation
+
+Before using it, log in to your information portal account in "Me" -> "Information Portal Settings."
+
+## Shortcut
+
+Long press the Ham icon on your home screen to open the Luojia E-Card quickly.
+
+---
+
+---
+url: /developers/open-platform/oauth2-guide.md
+description: Step-by-step guide to integrate Ham SSO via OAuth2.
+---
+
+# OAuth 2.0 Full Integration Guide
+
+> This document is intended for third-party application developers who wish to integrate with the **Ham Open Platform**. It provides a comprehensive introduction to the SSO authorization flow, API specifications, integration details, and security best practices based on OAuth 2.0 Authorization Code Grant (RFC 6749 §4.1).
+>
+> * **Open Platform API Domain**: `https://open-api.ham.nowcent.cn` (all server-to-server HTTP calls use this domain, HTTPS enforced)
+> * **Authorization Entry (Universal Link)**: `https://ham.nowcent.cn/sso-authorize?client_id=xxx&scope=profile,is_student&state=yyy&redirect_uri={redirect_uri}`
+
+## 1. Basic Concepts and Role Definitions
+
+The Ham Open Platform implements the standard **OAuth 2.0 Authorization Code Grant** (RFC 6749 §4.1). Ham's authorization confirmation UI supports multiple methods including mobile native authorization, desktop QR code scanning, and Passkey authentication, resulting in four roles in the flow.
+
+### 1.1 Four Roles
+
+| Role | Hosted By | Responsibility |
+|---|---|---|
+| **Resource Owner** | Ham logged-in user | Owns protected resources (personal info, student identity, etc.). Decides whether to authorize third-party access |
+| **Client** | Third-party application (Web / App / Server) | **Target audience of this document**. Initiates authorization requests, receives `code`, exchanges for `access_token` on server side, calls UserInfo API |
+| **Authorization UI** | Ham | Receives Deep Link from third-party, displays authorization consent page. Supports mobile native authorization, desktop QR code scanning, and Passkey authentication |
+| **Authorization / Resource Server** | Ham Backend (`open-api.ham.nowcent.cn`) | Issues authorization codes, Access Tokens, validates third-party credentials, filters and returns user resources by scope |
+
+**Role Interaction (Third-party Perspective):**
+
+```mermaid
+flowchart LR
+    RO["Resource Owner<br/>(Ham User)"]
+    C["Third-party App<br/>(Client)"]
+    AUI["Ham<br/>(Authorization UI)"]
+    AS["Ham Open Platform<br/>open-api.ham.nowcent.cn"]
+
+    C -- "1. Universal Link<br/>https://ham.nowcent.cn/sso-authorize" --> AUI
+    AUI -- "2. User approves" --> RO
+    AUI -- "3. Redirect redirect_uri + code" --> C
+    C -- "4. POST /oauth/token" --> AS
+    AS -- "5. Return access_token" --> C
+    C -- "6. GET /oauth/userinfo" --> AS
+    AS -- "7. Return open_id / nickname / ..." --> C
+```
+
+### 1.2 Key Terminology
+
+| Term | Description |
+|---|---|
+| **Client ID** (`client_id`) | The **public identifier** obtained after registering on the Ham Open Platform |
+| **Client Secret** (`client_secret`) | The **confidential credential** obtained after registration. **Server-side only** — never expose in frontend code, mobile bundles, or public repositories |
+| **Redirect URI** | The address Ham redirects to after authorization. Must be **whitelisted** in the Ham Open Platform console; validated by **exact string matching** |
+| **Authorization Code** (`code`) | A one-time, short-lived intermediate credential for exchanging Access Token. Valid for **5 minutes** |
+| **Access Token** | Bearer token for accessing user information. Valid for **2 hours**. No Refresh Token (re-authorization required after expiry) |
+| **Scope** | Authorization scope, see [1.3](#_1-3-scope-permissions) |
+| **State** | An unpredictable random string generated by the client to prevent CSRF attacks; returned as-is in the redirect URL |
+| **open\_id** | A stable unique identifier for the user within the current third-party app. **Deterministic** (same user + same app = always the same), **irreversible**, **different across apps** |
+
+### 1.3 Scope Permissions
+
+The Ham Open Platform currently supports the following scopes. Follow the **principle of least privilege** and only request what your business needs:
+
+| Scope | Description | UserInfo Returned Fields |
+|---|---|---|
+| `profile` | Access nickname and avatar | `nickname`, `avatar_url` |
+| `is_student` | Access student status | `is_student` (bool) |
+
+> **Note**: Unlisted scopes are silently filtered by the server. `open_id` is always returned without requiring an additional scope.
+
+## 2. Authorization Code Flow in Detail
+
+### 2.1 Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant TP as Third-party App
+    participant APP as Ham<br/>(Authorization UI)
+    participant BE as Ham Open Platform<br/>open-api.ham.nowcent.cn
+
+    Note over U, BE: Phase 1 — Third-party initiates authorization
+    U->>TP: Click "Sign in with Ham"
+    TP->>TP: Generate random state, bind to session
+    TP->>APP: Open Universal Link
+
+    Note over U, BE: Phase 2 — User authorizes in Ham
+    APP->>U: Display app info and scope list
+    U->>APP: Tap "Approve"
+
+    Note over U, BE: Phase 3 — Redirect to third-party
+    APP->>TP: Redirect to redirect_uri + code + state
+
+    Note over U, BE: Phase 4 — Server exchanges Access Token
+    TP->>TP: Verify state matches session value
+    TP->>BE: POST /oauth/token (code + client credentials)
+    BE->>TP: Return access_token
+
+    Note over U, BE: Phase 5 — Server fetches user info
+    TP->>BE: GET /oauth/userinfo (Bearer token + client credentials)
+    BE->>TP: Return open_id / nickname / avatar_url / is_student
+    TP->>U: Login successful
+```
+
+### 2.2 Step-by-Step Description
+
+**Phase 1 — Third-party Initiates Authorization**
+
+1. User clicks "Sign in with Ham" in the third-party app.
+2. The third-party app **on its server** generates:
+   * `state`: An unpredictable random string (recommended ≥ 32 bytes of entropy), bound to the current user session (Session / Redis).
+   * Selected `redirect_uri`: Must be one of the whitelisted addresses registered in the Ham Open Platform console, HTTPS only.
+3. The third-party app launches Ham via Universal Link:
+
+   ```
+   https://ham.nowcent.cn/sso-authorize?client_id=xxx&scope=profile,is_student&state=yyy&redirect_uri={redirect_uri}
+   ```
+
+**Phase 2 — User Authorizes in Ham**
+
+4. Ham requires the user to be logged in, displays the third-party app name, icon, and requested scope list.
+5. User taps "Approve" in Ham. If the user has previously authorized the same scopes for the same app, Ham may skip the consent page for a seamless experience.
+
+**Phase 3 — Redirect to Third-party**
+
+6. Ham backend validates that the `redirect_uri` is in the app's **whitelist**; upon success, Ham opens the address with `code` and the original `state` in query parameters:
+
+   ```
+   {redirect_uri}?code={code}&state={state}
+   ```
+
+**Phase 4 — Server Exchanges Access Token**
+
+7. The third-party app receives `code` and `state` at the `redirect_uri`:
+   * **Must** first verify `state` strictly equals the session value;
+   * Immediately send `code` to its own server.
+8. The third-party **server** sends a POST request to `https://open-api.ham.nowcent.cn/oauth/token` with client credentials to exchange for an Access Token.
+
+**Phase 5 — Server Fetches User Info**
+
+9. The third-party **server** uses `Bearer {access_token}` + client credentials to request `https://open-api.ham.nowcent.cn/oauth/userinfo`.
+10. The third-party uses `open_id` as the unique user identifier to complete login/binding logic.
+
+## 3. Core Operations
+
+### 3.1 Building the Authorization Request (Launching Ham)
+
+**Universal Link Format:**
+
+```
+https://ham.nowcent.cn/sso-authorize?client_id={client_id}&scope={scopes}&state={state}&redirect_uri={redirect_uri}
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `client_id` | Required | Client ID obtained during registration |
+| `scope` | Required | Comma-separated, e.g. `profile,is_student` |
+| `state` | **Strongly recommended** | Random string for CSRF defense, bound to user session |
+| `redirect_uri` | **Required** | Target redirect address after authorization. Must be **whitelisted** in the console; must be **percent-encoded** when included in the query string |
+
+**Web Example:**
+
+```html
+<a href="https://ham.nowcent.cn/sso-authorize?client_id=abc123&scope=profile,is_student&state=xY7Kq9fZ2pLmN8vB&redirect_uri=https%3A%2F%2Fyour-app.example.com%2Fcallback">
+  Sign in with Ham
+</a>
+```
+
+**JS Example:**
+
+```js
+const state = crypto.randomUUID();
+sessionStorage.setItem('ham_oauth_state', state);
+const redirectUri = 'https://your-app.example.com/callback';
+const params = new URLSearchParams({
+  client_id: 'abc123',
+  scope: 'profile,is_student',
+  state,
+  redirect_uri: redirectUri,
+});
+location.href = `https://ham.nowcent.cn/sso-authorize?${params.toString()}`;
+```
+
+### 3.2 Handling the Authorization Callback
+
+**Successful Redirect:**
+
+```
+https://your-app.example.com/callback?code=SplxlOBeZQQYbYS6WxSbIA&state=xY7Kq9fZ2pLmN8vB
+```
+
+**User Cancels / Authorization Fails**: Ham will not redirect; the third-party should keep a "Try again" login entry.
+
+**Client Handling Points:**
+
+1. First verify `state` **strictly equals** the session value; terminate and show error if not;
+2. Only after verification, immediately send `code` to your server for token exchange;
+3. **Do not** persist `code` in frontend logs, URL bookmarks, Referrer, or frontend storage.
+
+### 3.3 Token Exchange (Code → Access Token)
+
+**Endpoint:**
+
+```
+POST https://open-api.ham.nowcent.cn/oauth/token
+```
+
+**Request Headers:**
+
+```
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic {BASE64(client_id:client_secret)}
+```
+
+**Request Body:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `grant_type` | Yes | Fixed as `authorization_code` |
+| `code` | Yes | Authorization code from Phase 3 |
+| `client_id` | Conditional | Required when not using Basic Auth |
+| `client_secret` | Conditional | Required when not using Basic Auth |
+
+**Success Response (200 OK):**
+
+```json
+{
+  "access_token": "a1b2c3d4e5f6...",
+  "token_type": "Bearer",
+  "expires_in": 7200,
+  "scope": "profile is_student"
+}
+```
+
+**Error Response:**
+
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "The authorization code is invalid or expired"
+}
+```
+
+**cURL Example:**
+
+```bash
+curl -X POST https://open-api.ham.nowcent.cn/oauth/token \
+  -u "abc123:your_client_secret" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA"
+```
+
+### 3.4 Accessing User Info (UserInfo)
+
+**Endpoint:**
+
+```
+GET https://open-api.ham.nowcent.cn/oauth/userinfo
+```
+
+**Request Headers:**
+
+```
+Authorization: Bearer {access_token}
+```
+
+> **Note**: The UserInfo endpoint requires **both** Access Token and client credentials (dual-factor verification).
+
+**Success Response (200 OK):**
+
+```json
+{
+  "open_id": "3f7a9c2b...e8",
+  "nickname": "John",
+  "avatar_url": "https://cdn.ham.nowcent.cn/avatar/xxx.jpg",
+  "is_student": true,
+  "scope": "profile is_student"
+}
+```
+
+**Field Descriptions:**
+
+| Field | Description | Return Condition |
+|---|---|---|
+| `open_id` | Stable unique identifier for the user in the current app | Always returned |
+| `nickname` | User nickname | Returned when `profile` is granted |
+| `avatar_url` | User avatar URL | Returned when `profile` is granted |
+| `is_student` | Whether the user is a student | Returned when `is_student` is granted |
+| `scope` | Actually granted scopes (space-separated) | Always returned |
+
+**cURL Example:**
+
+```bash
+curl https://open-api.ham.nowcent.cn/oauth/userinfo \
+  -u "abc123:your_client_secret" \
+  -H "Authorization: Bearer a1b2c3d4e5f6..."
+```
+
+### 3.5 Token Types and Lifetimes
+
+| Token | Lifetime | Notes |
+|---|---|---|
+| `authorization_code` | 5 minutes | One-time credential, invalidated after exchange |
+| `access_token` | 2 hours (`expires_in = 7200`) | Opaque Token — **do not** attempt to parse on the client |
+| **Refresh Token** | Not provided | Re-authorization required after Access Token expires |
+
+## 4. Security Practices and Considerations
+
+### 4.1 Security Best Practices
+
+* All HTTP calls **must** use HTTPS, TLS 1.2+
+* `client_secret` and `access_token` must **only be stored on the server** — never in frontend code, mobile bundles, or public repositories
+* If `access_token` needs to be sent to the browser, use **HttpOnly + Secure + SameSite=Lax/Strict** cookies
+* **Always** use and verify the `state` parameter to defend against CSRF
+* Strictly follow the separation: "Frontend launches Deep Link → Server exchanges Token → Server calls UserInfo"
+* Follow the **principle of least privilege** when requesting scopes
+* Use `open_id` as the stable user identifier
+
+### 4.2 Common Security Risks
+
+| Risk | Attack Method | Mitigation |
+|---|---|---|
+| **CSRF** | Attacker crafts authorization link to trick victim | Enforce random `state` and strictly verify on callback |
+| **Code Interception** | Malicious app hijacks callback via URL Scheme | Use pre-registered HTTPS `redirect_uri` |
+| **`client_secret` Leak** | Secret embedded in frontend bundle or public repo | Keep secret server-side only; use key management; rotate regularly |
+| **Token Leak** | Leaked via URL, Referrer, or logs | Token only in headers; sanitize logs |
+| **XSS Token Theft** | Frontend script reads token from `localStorage` | Use HttpOnly cookies; strict CSP |
+
+### 4.3 Error Handling
+
+| HTTP Status | Error | Trigger | Client Action |
+|---|---|---|---|
+| 400 | `unsupported_grant_type` | `grant_type` is not `authorization_code` | Check request parameters |
+| 400 | `invalid_request` | Missing required parameters | Fix parameters and retry |
+| 400 | `invalid_grant` | `code` invalid/expired/used | Guide user to re-authorize |
+| 401 | `invalid_client` | Client credentials error | Check client credentials |
+| 401 | `invalid_token` | `access_token` invalid/expired | Guide user to re-authorize |
+| 403 | `insufficient_scope` | Token not granted for this `client_id` | Use correct credentials or re-authorize |
+| 5xx | `server_error` | Server error | Exponential backoff retry |
+
+***
+
+**Reference Specifications**
+
+* RFC 6749 — The OAuth 2.0 Authorization Framework
+* RFC 6750 — The OAuth 2.0 Authorization Framework: Bearer Token Usage
+* RFC 9700 — Best Current Practice for OAuth 2.0 Security
+
+**Open Source**
+
+The Ham web client is open-sourced on GitHub: [whu-ham/ham-web](https://github.com/whu-ham/ham-web). You can refer to its OAuth 2.0 authorization implementation.
+
+---
+
+---
+url: /privacy.md
+description: 'Ham privacy policy - data collection, storage, and usage.'
+---
+
+# Privacy Policy
+
+(Revision date: February 3, 2026; Effective date: July 16, 2022)
+
+Ham values and protects your personal privacy. Sometimes we need certain information to provide the services you request. This privacy statement explains how data is collected and used in these cases. This statement applies to all related services of the Ham app.
+
+### Collection of personal information
+
+When we need information that can identify you (personal information) or contact you, we will ask for your consent.
+
+Ham does not collect your personal information. However, to improve app performance or for usage statistics, your personal information may be shared with third parties. The third-party services used by Ham are:
+
+**AMap Open Platform Location SDK**
+
+Third-party name: AutoNavi Software Co., Ltd.
+
+Purpose: Obtain location to display weather
+
+Function type: Location and weather search information
+
+Personal information involved: WLAN status information, location information
+
+Privacy policy link: <https://lbs.amap.com/pages/privacy/>
+
+**Unified Scan Service**
+
+Third-party name: Huawei Software Technologies Co., Ltd.
+
+Purpose: Scan code login and sharing
+
+Function type: QR code scan
+
+Personal information involved: Camera permission
+
+Privacy policy link: <https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050043971>
+
+**Remote Configuration**
+
+Third-party name: Huawei Software Technologies Co., Ltd.
+
+Purpose: Remote configuration
+
+Function type: Remote configuration
+
+Privacy policy link: <https://developer.huawei.com/consumer/cn/doc/AppGallery-connect-Guides/agc-remoteconfig-android-sdksecurity-0000001055867207>
+
+**Google SDK**
+
+Third-party name: Google
+
+Purpose: Device performance monitoring
+
+Privacy policy link: <https://policies.google.com/privacy>
+
+**QQ SDK**
+
+Third-party name: Tencent Technology
+
+Purpose: Login and sharing
+
+Privacy policy link: <https://privacy.qq.com/>
+
+**Mobile Push SDK**
+
+Third-party name: Tencent Computer Systems Co., Ltd. (Shenzhen)
+
+Purpose: Message push on mobile devices
+
+Personal information collected:
+
+1. Device information (phone model, system type, system version, etc.) for tag-based push and real-device identification, network information (network type) to support different push types, and app data (delivery, click, impression data generated during the push process) for push analytics.
+
+2. (Optional, depends on developer settings) Account binding information (depending on the selected push channel, QQ ID, WeChat Union ID, phone number, email, etc.) for account-based pushing.
+
+Data processing method: De-identification, encrypted transmission, and other security measures
+
+Official website: <https://cloud.tencent.com/product/tpns>
+
+Privacy policy: <https://privacy.qq.com/document/preview/8565a4a2d26e480187ed86b0cc81d727>
+
+**Huawei Push SDK**
+
+Third-party name: Huawei Software Technologies Co., Ltd.
+
+Purpose: Message push
+
+Personal information collected: App information and device information (device hardware info, basic system info, and system settings)
+
+Privacy policy: <https://developer.huawei.com/consumer/cn/doc/HMSCore-Guides/sdk-data-security-0000001050042177>
+
+**Meizu Push SDK**
+
+Third-party name: Zhuhai Meizu Communication Equipment Co., Ltd.
+
+Purpose: Provide real-time push notifications for Meizu devices, optimize push experience, and analytics.
+
+Personal information collected: Device-related information (phone brand, phone model, system version, system language, and device identifier PUSHID), app information, and push status
+
+Privacy policy: <https://open.flyme.cn/docs?id=236>
+
+### Control of personal information
+
+Ham will disclose your personal information only when required by law or consistent with Ham service terms or software license agreements, or when there is sufficient reason to believe disclosure is necessary to:
+
+(a) comply with explicit legal requirements or applicable legal procedures for this app;
+
+(b) comply with Ham service terms or software license agreements;
+
+(c) protect Ham rights or property; and
+
+(d) protect the personal safety of Ham developers, Ham product or service users, or the public in emergencies.
+
+Ham will not share this information with third parties without permission, except for the situations listed in this statement.
+
+### Personal information security
+
+We strictly protect the security of your personal information. We use various security technologies and procedures to prevent unauthorized access, use, or disclosure.
+
+### Disclaimer
+
+Ham does not assume any legal liability for the following matters:
+
+Ham provides your personal information as required by law or by relevant government authorities;
+
+Personal information leakage not caused by Ham;
+
+Any disputes arising from third parties using your personal information in accordance with Ham service terms and the situations listed in this statement;
+
+Temporary service interruption caused by hacker attacks, computer viruses, or government control;
+
+Any consequences caused by force majeure;
+
+Other exemptions stated in Ham service terms and this statement.
+
+### Revisions
+
+This privacy policy may be updated as needed. We recommend that users check the latest privacy policy online regularly. If any terms are updated in the future, we will not actively notify users. Updates will not be applied retroactively, and will not change how we handled previously collected data.
+
+---
+
+---
+url: /handbook/schedule.md
+description: Manage schedule items with due-date reminders and calendar sync.
+---
+
+# Schedule
+
+On the schedule page, you can view all schedule items, and add or delete them.
+
+## Nearest Schedule
+
+When you enter the schedule page, the nearest upcoming (non-expired) schedule item is displayed at the top, including the name, time, location, and a countdown to the start time. If the item is linked to a course, the course name is also shown.
+
+Tap the nearest schedule card to view its details.
+
+## Schedule Groups
+
+You can create groups to organize your schedule items. Groups are shown above the schedule list; tap a group to filter items in that group. Each group can have a custom name and icon.
+
+## Add a Schedule Item
+
+Tap the "+" button in the top-right corner to add a new item. When adding, you can set:
+
+* **Name**: The title of the item (required)
+* **Location**: Where the event takes place
+* **Notes**: Additional details
+* **Target time**: The start time of the event
+* **End time**: Optional; the end time (must be within 24 hours of the start time)
+* **Group**: Assign the item to a group
+* **Reminder**: Get notified before the event starts — options include 10 minutes, 30 minutes, 1 hour, 2 hours, 4 hours, or 8 hours
+* **Repeat**: Set a repeat rule — daily, weekly, or monthly — with a configurable end date
+* **Linked course**: Associate the item with a course from your timetable
+
+## Edit and Delete
+
+Tap a schedule item in the list to view its details. In the detail popup, you can:
+
+* Tap the settings button to edit the item
+* Tap the delete button to remove it
+* If the item has a repeat rule, you can choose to delete all related repeat items
+
+## System Calendar Integration (iOS)
+
+After adding or editing a schedule item, Ham automatically syncs it to the system calendar (calendar name: "Ham-日程"). The item's name, location, notes, time, and reminder are all synced.
+
+## Notification Reminders
+
+If you set a reminder, Ham sends a system notification before the event starts. The notification includes the item name, location, and start time.
+
+## Required Permissions
+
+### Schedule Reminders
+
+* iOS: Notifications, Calendar
+* Android: Notification permission
+
+---
+
+---
+url: /developers/ham-rn/score-calc.md
+description: GPA and credit calculation utilities using custom JavaScript scripts.
+---
+
+# Score Calculator Module
+
+## User Entry Point
+
+**Me → Scores → Settings → F2 Calculation Method → Use other calculation (JavaScript-based) → Choose calculation**
+
+Users go to the "Me" page, enter Scores, tap Settings, under "F2 calculation method" select "Use other calculation (JavaScript-based)", then tap "Choose calculation" to enter the score calculation script selection page, which is rendered by Ham React Native Components.
+
+## Features
+
+The score calculator module provides custom GPA / weighted score calculation based on JavaScript. Users can:
+
+1. Browse available calculation scripts (from GitHub and other sources)
+2. Select and apply a calculation script
+3. View script details (author, version, update notes, etc.)
+4. Test whether a script runs correctly
+
+## Registered Entry
+
+| Registration Name | Type | Description |
+| --- | --- | --- |
+| `RNScoreCalcView` | Component | Score calculation script selection view |
+
+## Code Structure
+
+### Business Logic (`business/education/scorecalc`)
+
+* `fetch.ts` — Fetches available calculation scripts from remote sources
+* `type.ts` — Type definitions (calculation script metadata structure)
+
+### UI Components (`components/scorecalc`)
+
+* `ScoreCalcView.tsx` — Score calculator main view, containing sub-components:
+  * Current score card — Displays the currently selected calculation method
+  * Description cell — Shows script description and update notes
+  * Developer card — Displays script author information
+  * GitHub link card — Links to the script's GitHub repository
+
+## Workflow
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant App as Ham Native App
+    participant RN as ham-rn (RNScoreCalcView)
+    participant GitHub as Remote Script Source
+
+    User->>App: Me → Scores → Settings → Use other calculation (JavaScript-based) → Choose calculation
+    App->>RN: Load RNScoreCalcView component
+    RN->>RN: Get current script via NativeScoreCalcModule.getCurrentCalc
+    RN->>GitHub: Fetch available calculation scripts
+    GitHub-->>RN: Return script list (with metadata and code)
+    RN->>User: Display script list
+    User->>RN: Select a script
+    RN->>RN: Test script via NativeScoreCalcModule.testItem
+    RN->>App: Apply script via NativeScoreCalcModule.selectCalc
+    App->>App: Recalculate GPA using new script
+```
+
+## Calculation Script Format
+
+A calculation script is a JavaScript function that receives a score list JSON string and user info JSON string, returning an array:
+
+```javascript
+/**
+ * @param {string} scoreListJson - Score list JSON string
+ * @param {string} userInfoJson - User info JSON string
+ * @returns {[number, string[]]} - [calculation result, selected course ID list]
+ */
+function calc(scoreListJson, userInfoJson) {
+    const scoreList = JSON.parse(scoreListJson);
+    const userInfo = JSON.parse(userInfoJson);
+    // Custom calculation logic
+    return [score, selectedCourseIds];
+}
+```
+
+## How to Add a New Calculation Method
+
+### Step 1: Create a Calculation Script
+
+Create a new `.ts` file under `src/business/education/scorecalc/embed/` and use the `defineEmbed` function to define your calculation logic:
+
+```typescript
+import {defineEmbed} from '@/business/education/scorecalc/defineEmbed';
+
+defineEmbed((scoreList, userInfo) => {
+  // scoreList: ScoreJsItem[] — list of course scores
+  // userInfo: UserInfo — user information
+
+  // Write your calculation logic here
+  let totalWeighted = 0;
+  let totalCredit = 0;
+  const selectedIds: string[] = [];
+
+  for (const item of scoreList) {
+    totalWeighted += item.credit * item.score;
+    totalCredit += item.credit;
+    selectedIds.push(item.courseId);
+  }
+
+  const result = totalCredit > 0 ? totalWeighted / totalCredit : 0;
+
+  // Return [calculated score, list of course IDs used in calculation]
+  return [result, selectedIds];
+});
+```
+
+### Step 2: Available Fields
+
+Each element (`ScoreJsItem`) in `scoreList` contains the following fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `courseType` | `string` | Course category (e.g. "公共基础必修") |
+| `name` | `string` | Course name (e.g. "高等数学") |
+| `credit` | `number` | Credit hours |
+| `courseCollege` | `string` | College offering the course |
+| `instructor` | `string` | Instructor name |
+| `score` | `number` | Numeric score |
+| `courseId` | `string` | Unique course identifier |
+
+`userInfo` (`UserInfo`) contains the following fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `userCollege` | `string` | User's college (e.g. "计算机学院") |
+
+### Step 3: Register the Script
+
+Add a new entry in the `fetchScoreCalcFromLocal` function in `src/business/education/scorecalc/fetch.ts`:
+
+```typescript
+import newScript from './embed/generated/your-script.generated';
+
+const fetchScoreCalcFromLocal = (): Array<ScoreCalcItem> => {
+  return [
+    // ... existing entries
+    {
+      title: 'Your Calculation Method Name',
+      date: '2026-01-01',
+      author: 'Author Name',
+      version: 1,
+      brief: 'Short description',
+      updateBrief: 'Update notes',
+      desc: 'Detailed description',
+      type: 'APP',
+      url: 'https://raw.githubusercontent.com/whu-ham/ham-rn/main/src/business/education/scorecalc/embed/your-script.ts',
+      script: newScript,
+    },
+  ];
+};
+```
+
+### Notes
+
+* `defineEmbed` registers your calculation function on `globalThis.calc`, making it callable from the native JSContext (e.g. iOS JavaScriptCore).
+* The return value must be in `[number, string[]]` format — the first element is the calculated score, the second is the list of course IDs that contributed to the calculation.
+* `.ts` files in the `embed/` directory are compiled into corresponding `.generated` files at build time, which are then imported by `fetch.ts`.
+* You can filter courses by `courseType` (e.g. required vs. elective), or implement college-specific logic using `userCollege`.
+
+## Related Native Modules
+
+| Module | Description |
+| --- | --- |
+| `NativeScoreCalcModule` | Score calculation script management (get current / select / view details / test scripts) |
+
+---
+
+---
+url: /handbook/sport.md
+description: How to book sports facilities with Ham.
+---
+
+# Sports Facilities
+
+::: tip Version requirements
+iOS: 1.3.2 (build >= 96)
+
+Android: 1.4.3
+:::
+
+You can book sports facilities with Ham.
+
+## Preparation
+
+Before booking, log in to your information portal account in "Me" -> "Information Portal Settings."
+
+## Browse facilities
+
+When browsing facilities, you can select your sport and venue, then check available slots and times to book.
+
+Browsing facilities is suitable when:
+
+* You suddenly want to work out and have no booking
+* A venue has plenty of remaining slots
+
+## Favorite bookings
+
+You can set favorite venues, sessions, and time slots in settings. After you set them, the booking appears on the home page for quick booking.
+::: tip Note
+Quick booking on the home page does not confirm availability for the slot. If a booking fails, Ham will select a nearby available slot automatically.
+:::
+
+## Order center
+
+On the home page, you can go to the order center to view or cancel your orders.
+
+## Pay for orders
+
+When a booking succeeds and payment is due, you can pay in two ways:
+
+* Pay via WeChat mini program:
+
+Pay in the "Venue Booking" mini program. This option supports WeChat Pay.
+
+* Pay on the web:
+
+After confirming the details, Ham provides a link to the university payment platform. Copy it to a browser to complete payment. This option supports Alipay or UnionPay.
+
+::: warning Important
+Payments on the WHU payment platform are not handled by Ham.
+:::
+
+## Booking status
+
+Your booking status is shown on the home page.
+
+When payment is due, you can pay from the booking status card.
+
+---
+
+---
+url: /developers/ham-web/sso-authorize.md
+description: SSO OAuth2 authorization flow and API reference for Ham Web.
+---
+
+# SSO OAuth2 Authorization
+
+## User Entry Point
+
+When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to Ham Web's `/sso-authorize` page.
+
+The page behavior depends on the user's device and login status:
+
+* **Mobile**: Attempts to launch the Ham native app via `ham://sso-authorize?...` Deep Link first. Falls back to web login if the launch fails
+* **Desktop**: Displays the web login page directly
+
+## Features
+
+The SSO OAuth2 authorization page handles the following flow:
+
+1. Parse URL parameters (`client_id`, `scope`, `redirect_uri`, `state`)
+2. Detect device type (mobile / desktop)
+3. Attempt Deep Link launch on mobile
+4. If web login is needed, provide the following login methods:
+   * **QR Code Login** — Scan with the Ham app to log in
+   * **Passkey Login** — Passwordless login via WebAuthn / Passkey
+5. After login, display the consent page (showing third-party app info and requested scopes)
+6. After user confirms, redirect back to the third-party app's `redirect_uri` with an authorization code
+
+## Page Stages
+
+The page uses Jotai state management and transitions through the following stages:
+
+```mermaid
+stateDiagram-v2
+    [*] --> loading: Parse URL params
+    loading --> invalid: Invalid params
+    loading --> deep_link_trying: Mobile
+    loading --> login: Desktop (not logged in)
+    loading --> consent: Desktop (logged in)
+    deep_link_trying --> deep_link_fallback: Launch failed
+    deep_link_fallback --> login: Choose web login
+    login --> consent: Login success
+    consent --> [*]: Authorized, redirect
+```
+
+| Stage | Description |
+| --- | --- |
+| `loading` | Parsing URL parameters, detecting device type |
+| `invalid` | Invalid URL parameters, showing error page |
+| `deep-link-trying` | Attempting to launch the Ham native app |
+| `deep-link-fallback` | Launch failed, offering app install links and web login options |
+| `login` | Web login page (QR code / Passkey) |
+| `consent` | Authorization consent page |
+
+## Code Structure
+
+### Page Components (`app/sso-authorize/`)
+
+* `page.client.tsx` — Main page component, handles stage transitions and Deep Link logic
+* `store.ts` — Jotai state atoms (URL params, page stage, Deep Link URL)
+* `LoginView.tsx` — Login view (QR code + Passkey tabs)
+* `ConsentView.tsx` — Authorization consent view
+* `DeepLinkTrying.tsx` — Deep Link attempt view
+* `DeepLinkFallback.tsx` — Deep Link fallback view
+* `HeaderBar.tsx` — Page header bar
+* `InvalidRequestView.tsx` — Invalid request view
+
+### Service Layer (`services/sso/`)
+
+* `api.ts` — SSO API wrapper (QR login, Passkey login, session management, consent)
+* `deepLink.ts` — Deep Link construction and launch logic
+* `ua.ts` — Device type detection (mobile / desktop)
+
+### API Routes (`app/api/`)
+
+* `auth/qr/ticket/` — QR login ticket creation and polling
+* `auth/passkey/` — Passkey login (get options, verify assertion)
+* `auth/me/` — Get current logged-in user info
+* `auth/logout/` — Logout
+* `auth/refresh/` — Refresh session
+* `sso/consent/info/` — Get consent info (third-party app name, scope descriptions)
+* `sso/consent/confirm/` — Confirm authorization, return authorization code
+
+## Workflow
+
+```mermaid
+sequenceDiagram
+    participant ThirdParty as Third-party App
+    participant Browser as Browser
+    participant HamWeb as Ham Web
+    participant HamBackend as Ham Backend
+    participant HamApp as Ham Native App
+
+    ThirdParty->>Browser: Redirect to /sso-authorize?client_id=...
+    Browser->>HamWeb: Load authorization page
+    
+    alt Mobile
+        HamWeb->>HamApp: Attempt Deep Link launch
+        alt Launch successful
+            HamApp->>HamApp: Complete authorization in-app
+            HamApp->>ThirdParty: Redirect to redirect_uri
+        else Launch failed
+            HamWeb->>Browser: Show web login page
+        end
+    end
+    
+    alt Web login
+        Browser->>HamWeb: Choose login method (QR code / Passkey)
+        HamWeb->>HamBackend: Authentication request
+        HamBackend-->>HamWeb: Auth success, set session cookie
+        HamWeb->>HamBackend: Query consent info
+        HamBackend-->>HamWeb: Return app info and scopes
+        HamWeb->>Browser: Show consent page
+        Browser->>HamWeb: User confirms authorization
+        HamWeb->>HamBackend: Submit consent confirmation
+        HamBackend-->>HamWeb: Return authorization code
+        HamWeb->>ThirdParty: Redirect to redirect_uri?code=...&state=...
+    end
+```
+
+## Session Management
+
+The authorization page implements a visibility-aware session refresh mechanism:
+
+* While on the consent stage, listens for `visibilitychange` events
+* Each time the page returns to the foreground, calls `/auth/refresh` to renew the session cookie
+* If the session has expired (401), automatically redirects the user back to the login stage
+
+---
+
+---
+url: /handbook/status.md
+description: 'Status page showing today''s tasks, weather, library reservations, and classes.'
+---
+
+# Status
+
+The status page shows the tasks you need to handle today.
+
+### Weather
+
+Shows real-time weather so you can adjust what you wear.
+
+### Library Reservation
+
+Shows your current reservations. You can also change the reservation time quickly.
+
+### Classes
+
+Shows your courses for today or tomorrow.
+
+### Schedule
+
+Shows the schedule items you added in Ham.
+
+### Campus Bus
+
+Shows campus bus info for the nearest stop.
+
+### Sports
+
+Shows your booked sports venues.
+
+---
+
+---
+url: /privacy/user-policy.md
+description: Ham user agreement - terms of service.
+---
+
+# User Agreement
+
+This agreement sets out the rights and obligations between Ham and users for Ham software services (the "Service"). "User" refers to any individual who downloads, installs, registers, logs in, or uses the Service (collectively, "use"). Before registering, Ham hereby reminds you to read this User Agreement (the "Agreement") carefully to ensure you fully understand all terms. Please read and understand the terms carefully, especially those related to limitation or exclusion of liability, rights licensing and information use, consent to special services, applicable law, and dispute resolution. Important terms such as exclusions or limitations of liability will be highlighted in bold. If you do not agree to this Agreement, Ham cannot provide complete products and services, and you may choose to stop using the Service. If you choose to agree or use Ham and related services, you are deemed to have fully understood and accepted this Agreement and other agreements and rules related to Ham (including but not limited to this Agreement).
+
+To provide better services, or due to changes in laws, policies, technology, or product features, Ham may revise this Agreement from time to time. Revisions form part of this Agreement. After updates, Ham will notify users via the official website announcement or other appropriate ways. Users can also view the latest version on the website homepage or in app settings. Continued use of Ham and related services indicates acceptance of the revised Agreement.
+
+## 1. Account Registration
+
+1. Users must register a Ham account before using the Service. Ham may change account registration or binding methods based on user needs or product requirements.
+
+2. Given Ham account binding methods, you agree that Ham may use information such as social accounts or phone numbers provided by you during registration.
+
+3. You understand and agree that account information (name, avatar, profile, and other personal information) must comply with laws and Ham rules. It must not contain illegal or inappropriate content, and must not impersonate others (including using another person's name, title, avatar, etc.) or otherwise cause confusion. You must not maliciously register accounts (including frequent or batch registrations). You must comply with laws and regulations and not engage in behavior that harms national interests, infringes on others' legal rights, or violates public morals. Ham has the right to review registration information.
+
+4. During registration and use, Ham may collect personal information needed to identify you or to provide better service. This may include your name, gender, age, date of birth, ID number, address, school, company, industry, interests, frequent locations, and personal profile. Ham's use of this information is subject to the personal information protection provisions in Section 3.
+
+## 2. Service Content
+
+1. The specific content of the Service is provided by Ham based on actual conditions, including but not limited to horoscope and weather queries. To improve user experience, Ham may change its services from time to time (including software modifications, upgrades, feature enhancements, new services, or replacements). Users will be notified of such changes (including system prompts, announcements, or in-app messages). Users may choose to accept updates; if you do not update, some features may be limited or unavailable.
+
+2. Ham grants users a personal, revocable, non-transferable, non-exclusive, non-commercial license to use Ham software and related services. All other rights not expressly granted remain with Ham. Before exercising those rights, you must obtain written permission from Ham. Failure to exercise a right does not constitute a waiver.
+
+3. Ham services include free and paid services. Users may purchase paid services via online banking, Alipay, or other payment methods provided by Ham. For paid services, Ham will provide clear notice before use. Only after you agree to pay and complete payment can you use paid services. Completion is determined by the "payment completed" confirmation from the bank or third-party payment platform.
+
+## 3. Protection of User Personal Information
+
+1. During registration or use, users may be required to submit certain necessary personal information as required by laws and regulations. If submitted information is incomplete or non-compliant, you may be unable to use the Service or may be restricted during use.
+
+2. User personal information includes: (1) information provided by the user (such as phone number, location when enabling location services); (2) information shared by other parties; and (3) information lawfully collected by Ham to provide services (such as device or software information, browsing history, and time data). Personal information refers to any information recorded electronically or otherwise that can identify a specific natural person alone or in combination with other information. You understand and agree that Ham will process and protect personal information in accordance with the Privacy Policy published by Ham. You are encouraged to read and understand the Privacy Policy in full and make appropriate choices as needed.
+
+3. Ham values personal information protection and will take technical and other necessary measures to keep it secure and prevent leakage, damage, or loss. If such an incident occurs or is likely to occur, Ham will take remedial measures and inform the user. Users who discover such issues should contact Ham immediately.
+
+4. Ham will not disclose user personal information to any third party without your consent, except:
+   * When required by laws or competent authorities;
+   * When personal information is disclosed due to the user sharing account credentials or other non-Ham causes;
+   * When the user voluntarily discloses personal information to a third party;
+   * When the user and Ham (and partners) publicly agree on usage and Ham discloses information accordingly;
+   * When personal information is disclosed due to hacking, computer viruses, or force majeure;
+   * When personal information has been processed so it cannot identify a specific person and cannot be restored.
+
+5. Users agree that Ham may use personal information for:
+   * Sending important notices such as software updates and agreement changes;
+   * Internal audits, data analysis, and research to improve products and communication;
+   * Managing, reviewing, and processing user information according to this Agreement;
+   * Other matters required by applicable laws and regulations.
+
+Except as above, Ham will not use personal information for any other purpose without prior consent.
+
+6. Ham values the protection of minors. Ham relies on user-provided information to determine whether a user is a minor. Anyone under 18 may not register an account or use the Service.
+
+7. Ham will collect, use, or disclose personal information lawfully, properly, and as necessary, and will not collect information unrelated to the Service.
+
+8. Ham has a Privacy Policy. Users should read and understand it before using Ham products and/or services. If you disagree with the policy, the Service may not function properly or as intended. You can also view it in the "About" section in settings. Ham hopes the Privacy Policy clearly explains how personal information is handled, and recommends reading it in full to better protect your privacy.
+
+## 4. Content Guidelines
+
+1. "Content" refers to any content created, uploaded, copied, published, or transmitted by users while using the Service, including account avatars, names, profiles, and other registration information or verification data, as well as text, audio, images, videos, and other content, and related links or pages.
+
+2. Users must not use Ham accounts or the Service to create, upload, copy, publish, or transmit content prohibited by laws, regulations, or policies, including but not limited to:
+   * Opposing the basic principles established by the Constitution;
+   * Endangering national security, leaking state secrets, subverting state power, or undermining national unity;
+   * Damaging national honor or interests;
+   * Distorting, vilifying, or denying heroic deeds and spirit, or infringing on a hero's name, portrait, reputation, or honor by insult or defamation;
+   * Promoting terrorism, extremism, or inciting terrorist or extremist activities;
+   * Inciting ethnic hatred or discrimination, or undermining ethnic unity;
+   * Undermining national religious policies, promoting cults or superstition;
+   * Spreading rumors or disrupting economic or social order;
+   * Spreading obscenity, pornography, gambling, violence, murder, terror, or abetting crime;
+   * Insulting or defaming others, or infringing on others' reputation, privacy, or legal rights;
+   * Inciting illegal assembly, association, marching, demonstration, or gathering to disrupt public order;
+   * Acting in the name of illegal civil organizations;
+   * Violating the "seven bottom lines" requirements of laws and regulations, the socialist system, national interests, citizens' legal rights, public order, moral standards, and authenticity of information;
+   * Any other content prohibited by laws, administrative regulations, or policies.
+
+3. Users must not use Ham accounts or the Service to create, upload, copy, publish, or transmit content that interferes with Ham operations or infringes on others' legal rights, including but not limited to:
+   * Exaggerated headlines that are inconsistent with the content;
+   * Hype of scandals or negative news;
+   * Improper commentary on disasters or major incidents;
+   * Sexual hints or suggestive content;
+   * Graphic, scary, or brutal content that causes discomfort;
+   * Inciting discrimination or regional discrimination;
+   * Promoting vulgar, lowbrow, or kitsch content;
+   * Content that may induce minors to imitate unsafe behavior or form bad habits;
+   * Insults, threats, or harassment;
+   * Spam, malicious, or deceptive information;
+   * Infringing others' personal information or data;
+   * Infringing others' portrait rights, intellectual property, trade secrets, or other legal rights;
+   * Other content that interferes with normal operations or harms users or third parties.
+
+## 5. Usage Rules
+
+1. Any content transmitted or published by users through the Service does not reflect Ham's views or policies, and Ham assumes no responsibility for it.
+
+2. Users must not use Ham accounts or the Service to engage in any of the following:
+   * Submit or publish false information, or impersonate others by using their avatars or information;
+   * Force or induce users to follow, click links, or share information;
+   * Mislead or deceive others by fabricating facts or concealing truth;
+   * Use technical means to batch-create fake accounts;
+   * Engage in illegal or criminal activities using the Service;
+   * Produce or distribute methods or tools related to the above behaviors, or operate or spread them, whether or not for commercial purposes;
+   * Other acts that violate laws or regulations, infringe others' legal rights, or interfere with Ham operations.
+
+3. Users are fully responsible for the authenticity, legality, harmlessness, accuracy, and effectiveness of content transmitted through their accounts. Any legal liability arising from such content is borne by the user. If Ham or third parties suffer losses, the user shall compensate accordingly.
+
+4. The Service may include advertisements. Users agree to display ads from Ham and third-party providers or partners during use. Unless explicitly stated by laws, users are responsible for any transactions conducted based on such ads. Ham bears no responsibility for losses caused by such transactions or the advertising content.
+
+5. Unless permitted in writing by Ham, users must not:
+   * Delete copyright information on the software or copies;
+   * Reverse engineer, decompile, disassemble, or otherwise attempt to discover the source code;
+   * Use, rent, lend, copy, modify, link, reprint, compile, publish, or build mirror sites for content with Ham intellectual property rights;
+   * Copy, modify, add, delete, or create derivative works of data in memory, client-server interaction data, or system data required for software operation, including through plugins or unauthorized third-party tools/services;
+   * Modify or forge instructions or data during software operation, change software functions or effects, or operate or disseminate tools or methods for such purposes, whether or not for commercial purposes;
+   * Log in or use Ham services through unauthorized third-party software, plugins, or systems, or produce, publish, or spread such software, plugins, or systems.
+
+## 6. Account Management
+
+1. Ham accounts are owned by Ham. After registration, users obtain the right to use the account, which belongs only to the initial registrant. Transfer, lending, rental, assignment, or sale is prohibited. If Ham finds or reasonably suspects the account user is not the original registrant, it may suspend or terminate service and permanently disable the account to protect account security.
+
+2. Users can (1) view and edit profile information, (2) view, modify, delete, or cancel account information via "Settings." Note that deleting information also removes stored text and images.
+
+3. Users must properly safeguard account information and passwords. Losses caused by poor protection are the user's responsibility. Users are legally responsible for actions under their account. Users must not use another user's account or password. If you suspect unauthorized use, you must notify Ham immediately.
+
+4. Users must comply with this Agreement and use the Service correctly. If a user violates any terms, Ham may suspend or terminate services for the account after notice.
+
+5. Users can cancel their accounts via "Settings" -> "Sign Out" (entry points may change without notice). Ham will assist with cancellation after verifying identity, security status, device information, and infringement complaints, and will delete user account information as requested unless otherwise required by law. Account cancellation is irreversible. Users must back up data related to their Ham account and ensure services are properly handled. Cancellation does not exempt the account from responsibilities prior to cancellation. If during cancellation the account is subject to complaint or investigation, Ham may terminate the cancellation process at its discretion.
+
+## 7. Risk Assumption
+
+You understand and agree that Ham only provides a platform for information sharing, transmission, and access. You are responsible for all actions under your account, including content transmitted and any consequences. You should judge the content in Ham and the Service on your own and bear all risks, including risks arising from reliance on correctness, completeness, or usefulness. Ham does not and will not bear any responsibility for losses or damages caused by user behavior.
+
+---
+
+---
+url: /handbook/user-center.md
+description: Manage your Ham account and settings.
+---
+
+# User Center
+
+After logging in to your Ham account, you can manage your account information and settings in the User Center.
+
+## Ham Account
+
+Ham supports the following login methods:
+
+* Passkey
+* QQ
+* WeChat
+* GitHub
+* Ziqiang Auth
+* Apple Sign-In (iOS only)
+
+## Profile
+
+After logging in, you can change your avatar and nickname in the User Center.
+
+## Login Devices
+
+You can view the list of currently logged-in devices and remove any devices you no longer use.
+
+## Social Accounts
+
+You can view your linked social accounts, link new ones, or unlink existing ones. The supported social account types are the same as the login methods.
+
+## Passkey Management
+
+You can manage your Passkeys here, including adding new Passkeys or removing existing ones. Passkey is a passwordless login method that uses your device's biometric authentication (such as Face ID or fingerprint) for identity verification.
+
+## QR Code Login
+
+You can use the app to scan a login QR code on Ham Web to quickly log in.
+
+## Authorized Apps
+
+You can view and manage third-party apps that have been authorized to log in with your Ham account. If you no longer use an app, you can revoke its authorization.
+
+## More
+
+In "More," you can perform actions such as account deactivation.
