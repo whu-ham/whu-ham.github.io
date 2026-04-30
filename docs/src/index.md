@@ -4,7 +4,7 @@ hero:
   name: Ham
   tagline: 文档中心
   image: 
-    src: images/icons/android-chrome-192x192.png
+    src: icon-1024 2.png
     alt: Ham-Logo
   actions:
     - theme: brand

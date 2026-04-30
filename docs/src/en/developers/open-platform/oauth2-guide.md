@@ -3,8 +3,8 @@ prev:
   text: 'Ham Connect Overview'
   link: '/en/developers/open-platform/'
 next:
-  text: 'Ham Web Overview'
-  link: '/en/developers/ham-web/'
+  text: 'Login Button Source Code'
+  link: '/en/developers/open-platform/login-button'
 ---
 
 # OAuth 2.0 Full Integration Guide

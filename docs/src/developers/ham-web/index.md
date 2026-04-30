@@ -1,7 +1,7 @@
 ---
 prev:
-  text: '接入指南'
-  link: '/developers/open-platform/oauth2-guide'
+  text: '品牌资源'
+  link: '/developers/open-platform/brand-assets'
 next:
   text: 'SSO OAuth2 授权'
   link: '/developers/ham-web/sso-authorize'

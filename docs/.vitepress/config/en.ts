@@ -124,6 +124,14 @@ const sideBar: DefaultTheme.Sidebar = {
           text: 'Integration Guide',
           link: 'oauth2-guide',
         },
+        {
+          text: 'Login Button Source Code',
+          link: 'login-button',
+        },
+        {
+          text: 'Brand Assets',
+          link: 'brand-assets',
+        },
       ],
     },
     {

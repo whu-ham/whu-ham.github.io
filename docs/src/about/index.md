@@ -9,4 +9,4 @@
 
 项目里有很多我的账号信息，包括推送服务、苹果的开发者账号等，所以暂时不打算开源。虽然闭源，但它是完全免费的。
 
-如果你有好的建议，欢迎在gitter一起交流，也欢迎大家在gitter进行技术讨论！
+如果你有好的建议，欢迎在 [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions) 一起交流，也欢迎大家进行技术讨论！

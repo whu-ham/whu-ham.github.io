@@ -1,7 +1,7 @@
 ---
 prev:
-  text: 'Integration Guide'
-  link: '/en/developers/open-platform/oauth2-guide'
+  text: 'Brand Assets'
+  link: '/en/developers/open-platform/brand-assets'
 next:
   text: 'SSO OAuth2 Authorization'
   link: '/en/developers/ham-web/sso-authorize'

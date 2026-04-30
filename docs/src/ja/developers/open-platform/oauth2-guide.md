@@ -3,8 +3,8 @@ prev:
   text: 'Ham Connect 概要'
   link: '/ja/developers/open-platform/'
 next:
-  text: 'Ham Web 概要'
-  link: '/ja/developers/ham-web/'
+  text: 'ログインボタンソースコード'
+  link: '/ja/developers/open-platform/login-button'
 ---
 
 # OAuth 2.0 完全接続ガイド
