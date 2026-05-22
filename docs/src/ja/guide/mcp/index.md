@@ -21,7 +21,7 @@ MCP（[Model Context Protocol](https://modelcontextprotocol.io/)）は、AIア�
 Ham MCPサービスは **Streamable HTTP** トランスポートを使用します：
 
 ```
-https://mcp.ham.nowcent.cn
+https://mcp.ham.nowcent.cn/mcp
 ```
 
 ## 認証

@@ -14,7 +14,7 @@ This guide explains how to configure Ham MCP service in common MCP clients.
 | Parameter | Value |
 | --- | --- |
 | Transport | Streamable HTTP |
-| Service URL | `https://mcp.ham.nowcent.cn` |
+| Service URL | `https://mcp.ham.nowcent.cn/mcp` |
 | Authentication | Bearer Token |
 
 ## Claude Desktop
@@ -31,7 +31,7 @@ Add the following configuration:
   "mcpServers": {
     "ham": {
       "type": "streamable-http",
-      "url": "https://mcp.ham.nowcent.cn",
+      "url": "https://mcp.ham.nowcent.cn/mcp",
       "headers": {
         "Authorization": "Bearer <YOUR_TOKEN>"
       }
@@ -54,7 +54,7 @@ To configure the MCP service in Cursor:
 4. Fill in the configuration:
    - **Name**: `Ham`
    - **Type**: `streamable-http`
-   - **URL**: `https://mcp.ham.nowcent.cn`
+   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
 5. Add authentication in Headers:
    - **Key**: `Authorization`
    - **Value**: `Bearer <YOUR_TOKEN>`
@@ -66,7 +66,7 @@ Replace `<YOUR_TOKEN>` with your actual Token.
 For other MCP-compatible clients, the general configuration steps are:
 
 1. Select **Streamable HTTP** transport
-2. Set the service URL to `https://mcp.ham.nowcent.cn`
+2. Set the service URL to `https://mcp.ham.nowcent.cn/mcp`
 3. Add `Authorization: Bearer <YOUR_TOKEN>` to the request headers
 
 Refer to your client's documentation for specific configuration instructions.
@@ -75,7 +75,7 @@ Refer to your client's documentation for specific configuration instructions.
 
 ### Connection Failed
 
-- Verify the service URL is correct: `https://mcp.ham.nowcent.cn`
+- Verify the service URL is correct: `https://mcp.ham.nowcent.cn/mcp`
 - Check your network connection
 - Confirm your client supports Streamable HTTP transport
 

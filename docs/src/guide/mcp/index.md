@@ -21,7 +21,7 @@ MCP（[Model Context Protocol](https://modelcontextprotocol.io/)）是一个开�
 Ham MCP 服务采用 **Streamable HTTP** 传输方式：
 
 ```
-https://mcp.ham.nowcent.cn
+https://mcp.ham.nowcent.cn/mcp
 ```
 
 ## 认证方式
