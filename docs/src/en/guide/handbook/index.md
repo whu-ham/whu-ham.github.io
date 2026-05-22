@@ -2,7 +2,7 @@
 description: "Introduction to Ham and its features."
 next:
   text: 'Status'
-  link: '/en/handbook/status'
+  link: '/en/guide/handbook/status'
 ---
 
 # Introduction

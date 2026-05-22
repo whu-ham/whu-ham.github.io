@@ -6,8 +6,8 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/download/',
   },
   {
-    text: '使用手册',
-    link: '/handbook/',
+    text: '指南',
+    link: '/guide/',
   },
   {
     text: '开发者',
@@ -24,11 +24,11 @@ const nav: DefaultTheme.NavItem[] = [
 ];
 
 const sideBar: DefaultTheme.Sidebar = {
-  '/handbook/': [
+  '/guide/': [
     {
       text: '使用手册',
       collapsed: false,
-      base: '/handbook/',
+      base: '/guide/handbook/',
       items: [
         {
           text: '简介',
@@ -77,6 +77,21 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: '问题反馈',
           link: 'bugfix',
+        },
+      ],
+    },
+    {
+      text: 'MCP',
+      collapsed: false,
+      base: '/guide/mcp/',
+      items: [
+        {
+          text: 'MCP 介绍',
+          link: 'index',
+        },
+        {
+          text: '配置指南',
+          link: 'config',
         },
       ],
     },

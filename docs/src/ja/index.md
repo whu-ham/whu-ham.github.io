@@ -11,8 +11,8 @@ hero:
       text: ダウンロード
       link: /ja/download/
     - theme: alt
-      text: マニュアル
-      link: /ja/handbook/
+      text: ガイド
+      link: /ja/guide/handbook/
     - theme: alt
       text: フィードバック
       link: https://github.com/whu-ham/whu-ham.github.io/discussions

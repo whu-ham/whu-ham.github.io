@@ -2,7 +2,7 @@
 description: "Ham及其功能介绍。"
 next:
   text: '状态'
-  link: '/handbook/status'
+  link: '/guide/handbook/status'
 ---
 
 # 简介

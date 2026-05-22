@@ -11,8 +11,8 @@ hero:
       text: Download
       link: /en/download/
     - theme: alt
-      text: Handbook
-      link: /en/handbook/
+      text: Guide
+      link: /en/guide/handbook/
     - theme: alt
       text: Feedback
       link: https://github.com/whu-ham/whu-ham.github.io/discussions

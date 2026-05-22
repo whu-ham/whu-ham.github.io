@@ -10,13 +10,14 @@ next:
 
 # Ham Web
 
-[Ham Web](https://github.com/whu-ham/ham-web) is the web frontend for Ham, primarily serving the SSO single sign-on authorization flow and acting as the web entry point for the Ham Connect platform.
+[Ham Web](https://github.com/whu-ham/ham-web) is the web frontend for Ham, primarily serving the SSO single sign-on authorization flow and the web console, acting as the web entry point for the Ham Connect platform.
 
 ## Where It Is Used
 
 Once deployed, Ham Web serves as the web service endpoint for the Ham Connect platform. It is used in the following scenarios:
 
 - **SSO Authorization Page** — When third-party apps initiate OAuth2 authorization through the Ham Connect platform, users are redirected to Ham Web's authorization page for login and consent confirmation
+- **Web Console** — Users can manage Tokens, view account information, and more in the browser ([ham.nowcent.cn/console](https://ham.nowcent.cn/console))
 - **QR Code Login** — Users can log in on the web by scanning a QR code with the Ham app
 - **Passkey Login** — Supports WebAuthn / Passkey passwordless login
 - **Mobile H5 Fallback** — When users don't have the Ham native app installed, provides a web-based install prompt and Passkey login option
@@ -67,6 +68,7 @@ app/                # Next.js App Router entry
     auth/           # Auth APIs (login, logout, refresh, passkey, QR code)
     sso/            # SSO APIs (consent confirmation, consent info)
   sso-authorize/    # SSO authorization page (login view, QR login, passkey login)
+  console/          # Web console (Token management, account info)
 components/         # Shared UI components
   LanguageSwitcher  # Language switcher
   ThemeSwitcher     # Theme switcher

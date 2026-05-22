@@ -6,8 +6,8 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/en/download/',
   },
   {
-    text: 'Handbook',
-    link: '/en/handbook/',
+    text: 'Guide',
+    link: '/en/guide/',
   },
   {
     text: 'Developers',
@@ -24,11 +24,11 @@ const nav: DefaultTheme.NavItem[] = [
 ];
 
 const sideBar: DefaultTheme.Sidebar = {
-  '/en/handbook/': [
+  '/en/guide/': [
     {
       text: 'Handbook',
       collapsed: false,
-      base: '/en/handbook/',
+      base: '/en/guide/handbook/',
       items: [
         {
           text: 'Overview',
@@ -77,6 +77,21 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: 'Feedback',
           link: 'bugfix',
+        },
+      ],
+    },
+    {
+      text: 'MCP',
+      collapsed: false,
+      base: '/en/guide/mcp/',
+      items: [
+        {
+          text: 'MCP Introduction',
+          link: 'index',
+        },
+        {
+          text: 'Configuration',
+          link: 'config',
         },
       ],
     },
