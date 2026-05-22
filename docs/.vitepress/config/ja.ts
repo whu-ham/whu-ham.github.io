@@ -6,8 +6,8 @@ const nav: DefaultTheme.NavItem[] = [
     link: '/ja/download/',
   },
   {
-    text: 'マニュアル',
-    link: '/ja/handbook/',
+    text: 'ガイド',
+    link: '/ja/guide/',
   },
   {
     text: '開発者',
@@ -24,11 +24,11 @@ const nav: DefaultTheme.NavItem[] = [
 ];
 
 const sideBar: DefaultTheme.Sidebar = {
-  '/ja/handbook/': [
+  '/ja/guide/': [
     {
       text: 'マニュアル',
       collapsed: false,
-      base: '/ja/handbook/',
+      base: '/ja/guide/handbook/',
       items: [
         {
           text: '概要',
@@ -77,6 +77,21 @@ const sideBar: DefaultTheme.Sidebar = {
         {
           text: 'フィードバック',
           link: 'bugfix',
+        },
+      ],
+    },
+    {
+      text: 'MCP',
+      collapsed: false,
+      base: '/ja/guide/mcp/',
+      items: [
+        {
+          text: 'MCP紹介',
+          link: 'index',
+        },
+        {
+          text: '設定ガイド',
+          link: 'config',
         },
       ],
     },

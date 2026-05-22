@@ -12,7 +12,7 @@ hero:
       link: /download/
     - theme: alt
       text: 使用手册
-      link: /handbook/
+      link: /guide/handbook/
     - theme: alt
       text: 反馈
       link: https://github.com/whu-ham/whu-ham.github.io/discussions

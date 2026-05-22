@@ -2,7 +2,7 @@
 description: "Hamとその機能の紹介。"
 next:
   text: 'ステータス'
-  link: '/ja/handbook/status'
+  link: '/ja/guide/handbook/status'
 ---
 
 # 概要

@@ -10,13 +10,14 @@ next:
 
 # Ham Web
 
-[Ham Web](https://github.com/whu-ham/ham-web) は Ham の Web フロントエンドプロジェクトで、主に SSO シングルサインオン認証フローを提供し、Ham Connect プラットフォームの Web エントリーポイントとして機能します。
+[Ham Web](https://github.com/whu-ham/ham-web) は Ham の Web フロントエンドプロジェクトで、主に SSO シングルサインオン認証フローと Web コンソールを提供し、Ham Connect プラットフォームの Web エントリーポイントとして機能します。
 
 ## 使用場所
 
 Ham Web はデプロイ後、Ham Connect プラットフォームの Web サービスエンドポイントとして機能します。主に以下のシナリオで使用されます：
 
 - **SSO 認証ページ** — サードパーティアプリが Ham Connect プラットフォームを通じて OAuth2 認証を開始すると、ユーザーは Ham Web の認証ページにリダイレクトされ、ログインと同意確認を行います
+- **Web コンソール** — ブラウザで Token の管理、アカウント情報の確認などが可能（[ham.nowcent.cn/console](https://ham.nowcent.cn/console)）
 - **QR コードログイン** — ユーザーは Web 上で QR コードをスキャンしてログインできます
 - **Passkey ログイン** — WebAuthn / Passkey パスワードレスログインをサポート
 - **モバイル H5 フォールバック** — Ham ネイティブアプリがインストールされていない場合、Web ベースのインストール案内と Passkey ログインオプションを提供
@@ -67,6 +68,7 @@ app/                # Next.js App Router エントリー
     auth/           # 認証関連 API（ログイン、ログアウト、リフレッシュ、Passkey、QR コード）
     sso/            # SSO 関連 API（同意確認、同意情報）
   sso-authorize/    # SSO 認証ページ（ログインビュー、QR ログイン、Passkey ログイン）
+  console/          # Web コンソール（Token 管理、アカウント情報）
 components/         # 共有 UI コンポーネント
   LanguageSwitcher  # 言語切り替え
   ThemeSwitcher     # テーマ切り替え
