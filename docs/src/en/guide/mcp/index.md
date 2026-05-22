@@ -21,7 +21,7 @@ MCP ([Model Context Protocol](https://modelcontextprotocol.io/)) is an open prot
 Ham MCP service uses **Streamable HTTP** transport:
 
 ```
-https://mcp.ham.nowcent.cn
+https://mcp.ham.nowcent.cn/mcp
 ```
 
 ## Authentication

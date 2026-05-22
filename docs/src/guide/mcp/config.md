@@ -14,7 +14,7 @@ prev:
 | 参数 | 值 |
 | --- | --- |
 | 传输方式 | Streamable HTTP |
-| 服务地址 | `https://mcp.ham.nowcent.cn` |
+| 服务地址 | `https://mcp.ham.nowcent.cn/mcp` |
 | 认证方式 | Bearer Token |
 
 ## Claude Desktop
@@ -31,7 +31,7 @@ prev:
   "mcpServers": {
     "ham": {
       "type": "streamable-http",
-      "url": "https://mcp.ham.nowcent.cn",
+      "url": "https://mcp.ham.nowcent.cn/mcp",
       "headers": {
         "Authorization": "Bearer <YOUR_TOKEN>"
       }
@@ -54,7 +54,7 @@ prev:
 4. 填写配置：
    - **Name**: `Ham`
    - **Type**: `streamable-http`
-   - **URL**: `https://mcp.ham.nowcent.cn`
+   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
 5. 在 Headers 中添加认证信息：
    - **Key**: `Authorization`
    - **Value**: `Bearer <YOUR_TOKEN>`
@@ -66,7 +66,7 @@ prev:
 对于其他支持 MCP 的客户端，通用配置步骤为：
 
 1. 选择 **Streamable HTTP** 传输方式
-2. 设置服务地址为 `https://mcp.ham.nowcent.cn`
+2. 设置服务地址为 `https://mcp.ham.nowcent.cn/mcp`
 3. 在请求头中添加 `Authorization: Bearer <YOUR_TOKEN>`
 
 具体配置方式请参考你所使用的客户端文档。
@@ -75,7 +75,7 @@ prev:
 
 ### 连接失败
 
-- 确认服务地址正确：`https://mcp.ham.nowcent.cn`
+- 确认服务地址正确：`https://mcp.ham.nowcent.cn/mcp`
 - 检查网络连接是否正常
 - 确认客户端支持 Streamable HTTP 传输方式
 

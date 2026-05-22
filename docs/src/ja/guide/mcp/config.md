@@ -14,7 +14,7 @@ prev:
 | パラメータ | 値 |
 | --- | --- |
 | トランスポート | Streamable HTTP |
-| サービスURL | `https://mcp.ham.nowcent.cn` |
+| サービスURL | `https://mcp.ham.nowcent.cn/mcp` |
 | 認証方式 | Bearer Token |
 
 ## Claude Desktop
@@ -31,7 +31,7 @@ Claude Desktopの設定ファイルを編集します：
   "mcpServers": {
     "ham": {
       "type": "streamable-http",
-      "url": "https://mcp.ham.nowcent.cn",
+      "url": "https://mcp.ham.nowcent.cn/mcp",
       "headers": {
         "Authorization": "Bearer <YOUR_TOKEN>"
       }
@@ -54,7 +54,7 @@ CursorでMCPサービスを設定するには：
 4. 設定を入力：
    - **Name**: `Ham`
    - **Type**: `streamable-http`
-   - **URL**: `https://mcp.ham.nowcent.cn`
+   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
 5. Headersに認証情報を追加：
    - **Key**: `Authorization`
    - **Value**: `Bearer <YOUR_TOKEN>`
@@ -66,7 +66,7 @@ CursorでMCPサービスを設定するには：
 その他のMCP対応クライアントの一般的な設定手順：
 
 1. **Streamable HTTP** トランスポートを選択
-2. サービスURLを `https://mcp.ham.nowcent.cn` に設定
+2. サービスURLを `https://mcp.ham.nowcent.cn/mcp` に設定
 3. リクエストヘッダーに `Authorization: Bearer <YOUR_TOKEN>` を追加
 
 具体的な設定方法は、お使いのクライアントのドキュメントを参照してください。
@@ -75,7 +75,7 @@ CursorでMCPサービスを設定するには：
 
 ### 接続に失敗する場合
 
-- サービスURLが正しいことを確認：`https://mcp.ham.nowcent.cn`
+- サービスURLが正しいことを確認：`https://mcp.ham.nowcent.cn/mcp`
 - ネットワーク接続を確認
 - クライアントがStreamable HTTPトランスポートに対応していることを確認
 
