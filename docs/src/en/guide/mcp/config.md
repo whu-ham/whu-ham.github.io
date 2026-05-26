@@ -112,38 +112,22 @@ ChatGPT Connectors are currently available only to ChatGPT Plus / Pro / Business
 
 #### Option 1: OAuth Dynamic Registration (recommended)
 
-1. Open Cursor Settings (`Cmd + ,`)
-2. Go to **MCP & Integrations** and click **New MCP Server**
-3. Use the configuration:
-   ```json
-   {
-     "mcpServers": {
-       "ham": {
-         "type": "streamable-http",
-         "url": "https://mcp.ham.nowcent.cn/mcp"
-       }
-     }
-   }
-   ```
-4. Save — Cursor will open your browser to complete the OAuth flow.
+1. Open Cursor Settings (`Cmd + ,`) and go to **MCP & Integrations**
+2. Click **New MCP Server** and fill in the dialog:
+   - **Name**: `ham`
+   - **Type**: `SSE`
+   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
+3. Save — Cursor will open your browser to complete the OAuth flow.
 
 #### Option 2: API Key
 
-Add a `headers` field to the configuration:
+In the **New MCP Server** dialog, fill in Name / Type / URL as above, then add a row under **Headers**:
 
-```json
-{
-  "mcpServers": {
-    "ham": {
-      "type": "streamable-http",
-      "url": "https://mcp.ham.nowcent.cn/mcp",
-      "headers": {
-        "Authorization": "Bearer <YOUR_API_KEY>"
-      }
-    }
-  }
-}
-```
+| Key | Value |
+| --- | --- |
+| `Authorization` | `Bearer <YOUR_API_KEY>` |
+
+Save to apply.
 
 ### [Antigravity](https://antigravity.google/)
 
