@@ -87,8 +87,8 @@ ChatGPT 的 Connectors 功能目前仅对 ChatGPT Plus / Pro / Business / Enterp
 
 ### [WorkBuddy](https://www.codebuddy.cn/work/)
 
-1. 打开 WorkBuddy，进入 **设置 → MCP 市场 → 自定义 MCP**
-2. 选择 **添加 MCP 服务**，填写：
+1. 打开 WorkBuddy，进入 **连接器 → 自定义连接器 → 配置 MCP**
+2. 填写以下配置：
    ```json
    {
      "mcpServers": {
@@ -112,22 +112,37 @@ ChatGPT 的 Connectors 功能目前仅对 ChatGPT Plus / Pro / Business / Enterp
 
 #### 方式一：OAuth 动态注册（推荐）
 
-1. 打开 Cursor 设置（`Cmd + ,`），进入 **MCP & Integrations**
-2. 点击 **New MCP Server**，在弹出对话框中填写：
-   - **Name**: `ham`
-   - **Type**: `SSE`
-   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
+1. 打开 Cursor 设置（`Cmd + ,`），进入 **Tools & MCPs**
+2. 点击 **New MCP Server**，Cursor 会打开一个新窗口（`mcp.json`）让你粘贴配置，将以下内容粘贴进去：
+   ```json
+   {
+     "mcpServers": {
+       "ham": {
+         "type": "streamable-http",
+         "url": "https://mcp.ham.nowcent.cn/mcp"
+       }
+     }
+   }
+   ```
 3. 保存后 Cursor 会自动唤起浏览器完成 OAuth 授权。
 
 #### 方式二：API Key
 
-在 **New MCP Server** 对话框中按上述方式填写 Name / Type / URL，并在 **Headers** 区域添加一行：
+在配置中追加 `headers.Authorization`：
 
-| Key | Value |
-| --- | --- |
-| `Authorization` | `Bearer <YOUR_API_KEY>` |
-
-保存后即可使用。
+```json
+{
+  "mcpServers": {
+    "ham": {
+      "type": "streamable-http",
+      "url": "https://mcp.ham.nowcent.cn/mcp",
+      "headers": {
+        "Authorization": "Bearer <YOUR_API_KEY>"
+      }
+    }
+  }
+}
+```
 
 ### [Antigravity](https://antigravity.google/)
 

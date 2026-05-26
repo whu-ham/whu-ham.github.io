@@ -87,8 +87,8 @@ ChatGPT Connectors are currently available only to ChatGPT Plus / Pro / Business
 
 ### [WorkBuddy](https://www.codebuddy.cn/work/)
 
-1. Open WorkBuddy and go to **Settings → MCP Marketplace → Custom MCP**
-2. Choose **Add MCP Server** and fill in:
+1. Open WorkBuddy and go to **Connectors → Custom Connector → Configure MCP**
+2. Fill in the following configuration:
    ```json
    {
      "mcpServers": {
@@ -112,22 +112,37 @@ ChatGPT Connectors are currently available only to ChatGPT Plus / Pro / Business
 
 #### Option 1: OAuth Dynamic Registration (recommended)
 
-1. Open Cursor Settings (`Cmd + ,`) and go to **MCP & Integrations**
-2. Click **New MCP Server** and fill in the dialog:
-   - **Name**: `ham`
-   - **Type**: `SSE`
-   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
+1. Open Cursor Settings (`Cmd + ,`) and go to **Tools & MCPs**
+2. Click **New MCP Server** — Cursor opens a new window (`mcp.json`) where you paste the configuration. Paste:
+   ```json
+   {
+     "mcpServers": {
+       "ham": {
+         "type": "streamable-http",
+         "url": "https://mcp.ham.nowcent.cn/mcp"
+       }
+     }
+   }
+   ```
 3. Save — Cursor will open your browser to complete the OAuth flow.
 
 #### Option 2: API Key
 
-In the **New MCP Server** dialog, fill in Name / Type / URL as above, then add a row under **Headers**:
+Add a `headers.Authorization` field to the configuration:
 
-| Key | Value |
-| --- | --- |
-| `Authorization` | `Bearer <YOUR_API_KEY>` |
-
-Save to apply.
+```json
+{
+  "mcpServers": {
+    "ham": {
+      "type": "streamable-http",
+      "url": "https://mcp.ham.nowcent.cn/mcp",
+      "headers": {
+        "Authorization": "Bearer <YOUR_API_KEY>"
+      }
+    }
+  }
+}
+```
 
 ### [Antigravity](https://antigravity.google/)
 

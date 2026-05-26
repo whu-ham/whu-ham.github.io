@@ -87,8 +87,8 @@ ChatGPT の Connectors 機能は現在、ChatGPT Plus / Pro / Business / Enterpr
 
 ### [WorkBuddy](https://www.codebuddy.cn/work/)
 
-1. WorkBuddy を開き、**設定 → MCP マーケットプレイス → カスタム MCP** に進む
-2. **MCP サーバーを追加** を選択し、次を入力：
+1. WorkBuddy を開き、**コネクタ → カスタムコネクタ → MCP を設定** に進む
+2. 次の設定を入力：
    ```json
    {
      "mcpServers": {
@@ -112,22 +112,37 @@ ChatGPT の Connectors 機能は現在、ChatGPT Plus / Pro / Business / Enterpr
 
 #### 方法1：OAuth動的登録（推奨）
 
-1. Cursor 設定を開き（`Cmd + ,`）、**MCP & Integrations** に進む
-2. **New MCP Server** をクリックし、ダイアログに入力：
-   - **Name**: `ham`
-   - **Type**: `SSE`
-   - **URL**: `https://mcp.ham.nowcent.cn/mcp`
+1. Cursor 設定を開き（`Cmd + ,`）、**Tools & MCPs** に進む
+2. **New MCP Server** をクリックすると、Cursor が新しいウィンドウ（`mcp.json`）を開いて設定を貼り付けられます。次の内容を貼り付けてください：
+   ```json
+   {
+     "mcpServers": {
+       "ham": {
+         "type": "streamable-http",
+         "url": "https://mcp.ham.nowcent.cn/mcp"
+       }
+     }
+   }
+   ```
 3. 保存すると Cursor がブラウザを起動して OAuth フローを完了させます。
 
 #### 方法2：API Key
 
-**New MCP Server** ダイアログで上記の Name / Type / URL を入力し、**Headers** セクションに次の行を追加します：
+設定に `headers.Authorization` を追加します：
 
-| Key | Value |
-| --- | --- |
-| `Authorization` | `Bearer <YOUR_API_KEY>` |
-
-保存すると利用できます。
+```json
+{
+  "mcpServers": {
+    "ham": {
+      "type": "streamable-http",
+      "url": "https://mcp.ham.nowcent.cn/mcp",
+      "headers": {
+        "Authorization": "Bearer <YOUR_API_KEY>"
+      }
+    }
+  }
+}
+```
 
 ### [Antigravity](https://antigravity.google/)
 
