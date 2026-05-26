@@ -68,7 +68,7 @@ app/                # Next.js App Router エントリー
     auth/           # 認証関連 API（ログイン、ログアウト、リフレッシュ、Passkey、QR コード）
     sso/            # SSO 関連 API（同意確認、同意情報）
   sso-authorize/    # SSO 認証ページ（ログインビュー、QR ログイン、Passkey ログイン）
-console/          # Web コンソール（API Key 管理、アカウント情報）
+  console/          # Web コンソール（API Key 管理、アカウント情報）
 components/         # 共有 UI コンポーネント
   LanguageSwitcher  # 言語切り替え
   ThemeSwitcher     # テーマ切り替え

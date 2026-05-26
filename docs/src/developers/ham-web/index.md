@@ -68,7 +68,7 @@ app/                # Next.js App Router 入口
     auth/           # 认证相关 API（登录、登出、刷新、Passkey、二维码）
     sso/            # SSO 相关 API（授权确认、授权信息）
   sso-authorize/    # SSO 授权页面（登录视图、二维码登录、Passkey 登录）
-console/          # Web 控制台（API Key 管理、账户信息）
+  console/          # Web 控制台（API Key 管理、账户信息）
 components/         # 共享 UI 组件
   LanguageSwitcher  # 语言切换器
   ThemeSwitcher     # 主题切换器

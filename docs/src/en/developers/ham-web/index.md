@@ -68,7 +68,7 @@ app/                # Next.js App Router entry
     auth/           # Auth APIs (login, logout, refresh, passkey, QR code)
     sso/            # SSO APIs (consent confirmation, consent info)
   sso-authorize/    # SSO authorization page (login view, QR login, passkey login)
-console/          # Web console (API Key management, account info)
+  console/          # Web console (API Key management, account info)
 components/         # Shared UI components
   LanguageSwitcher  # Language switcher
   ThemeSwitcher     # Theme switcher
