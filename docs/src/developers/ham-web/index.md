@@ -17,7 +17,7 @@ next:
 Ham Web 部署后作为 Ham 互联平台的 Web 服务端点，主要在以下场景中被使用：
 
 - **SSO 授权页面** — 当第三方应用通过 Ham 互联平台发起 OAuth2 授权时，用户会被重定向到 Ham Web 的授权页面进行登录和授权确认
-- **Web 控制台** — 用户可以在浏览器中管理 Token、查看账户信息等（[ham.nowcent.cn/console](https://ham.nowcent.cn/console)）
+- **Web 控制台** — 用户可以在浏览器中管理 API Key、查看账户信息等（[ham.nowcent.cn/console](https://ham.nowcent.cn/console)）
 - **二维码登录** — 用户可以在 Web 端通过扫描二维码完成登录
 - **Passkey 登录** — 支持 WebAuthn / Passkey 无密码登录
 - **移动端 H5 回退** — 当用户未安装 Ham 原生应用时，提供 Web 端的安装引导和 Passkey 登录选项
@@ -68,7 +68,7 @@ app/                # Next.js App Router 入口
     auth/           # 认证相关 API（登录、登出、刷新、Passkey、二维码）
     sso/            # SSO 相关 API（授权确认、授权信息）
   sso-authorize/    # SSO 授权页面（登录视图、二维码登录、Passkey 登录）
-  console/          # Web 控制台（Token 管理、账户信息）
+console/          # Web 控制台（API Key 管理、账户信息）
 components/         # 共享 UI 组件
   LanguageSwitcher  # 语言切换器
   ThemeSwitcher     # 主题切换器
