@@ -4,6 +4,10 @@ on:
   repository_dispatch:
     types: [android-release-requested]
 
+concurrency:
+  group: android-release-${{ github.event.client_payload.version_name }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -229,11 +233,12 @@ jobs:
           BUILD_TYPE: ${{ github.event.client_payload.build_type }}
           VERSION_NAME: ${{ github.event.client_payload.version_name }}
         run: |
+          set -euo pipefail
           if [ "$BUILD_TYPE" = "release" ]; then
             PUBLIC_TAG="v${VERSION_NAME}"
             BETA_NUM=""
           else
-            EXISTING_TAGS=$(gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags" --paginate --jq '.[].ref' 2>/dev/null || echo "")
+            EXISTING_TAGS=$(gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags" --paginate --jq '.[].ref')
             MAX_BETA=0
             for REF in $EXISTING_TAGS; do
               case "$REF" in
