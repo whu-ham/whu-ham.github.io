@@ -1,0 +1,187 @@
+name: Android Manual Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: Android build type
+        required: true
+        type: choice
+        options:
+          - beta
+          - release
+        default: beta
+      version_code:
+        description: Android version code
+        required: true
+        type: string
+      version_name:
+        description: Android version name
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Android repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-android
+          ref: main
+          token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure private proto repository access
+        env:
+          PROTO_REPO_TOKEN: ${{ secrets.PROTO_REPO_TOKEN }}
+        run: |
+          if [ -z "$PROTO_REPO_TOKEN" ]; then
+            echo "::error::PROTO_REPO_TOKEN is required to clone whu-ham/ham-proto"
+            exit 1
+          fi
+          PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
+          git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/".insteadOf "https://github.com/whu-ham/"
+          echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.6.4
+          run_install: false
+          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          gradle-home-cache-cleanup: true
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Update version files
+        env:
+          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ inputs.version_name }}
+        run: |
+          echo -n "$VERSION_CODE" > android/metadata/versionCode
+          echo -n "$VERSION_NAME" > android/metadata/versionName
+
+      - name: Restore keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEYSTORE_PATH="$RUNNER_TEMP/ham.jks"
+          echo "$HAM_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+        env:
+          HAM_KEYSTORE_B64: ${{ secrets.HAM_KEYSTORE_B64 }}
+
+      - name: Setup GOOGLE_AUTH key
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/keys.json"
+          echo "$GOOGLE_AUTH" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "SUPPLY_JSON_KEY=$KEY_PATH" >> "$GITHUB_ENV"
+        env:
+          GOOGLE_AUTH: ${{ secrets.GOOGLE_AUTH }}
+
+      - name: Setup Ruby
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ruby >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1; then
+              if [ "$(id -u)" -eq 0 ]; then
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential ruby-full
+              elif command -v sudo >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential ruby-full
+              else
+                echo "::error::Ruby is missing and this runner cannot install packages"
+                exit 1
+              fi
+            else
+              echo "::error::Ruby is missing and apt-get is unavailable"
+              exit 1
+            fi
+          fi
+          if ! command -v make >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1; then
+              if [ "$(id -u)" -eq 0 ]; then
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
+              elif command -v sudo >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
+              else
+                echo "::error::make is missing and this runner cannot install build tools"
+                exit 1
+              fi
+            else
+              echo "::error::make is missing and apt-get is unavailable"
+              exit 1
+            fi
+          fi
+          ruby --version
+          ruby -e 'abort("Ruby 3.1 or newer is required") if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1")'
+          echo "GEM_HOME=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "GEM_PATH=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/gems/bin" >> "$GITHUB_PATH"
+          export GEM_HOME="$RUNNER_TEMP/gems"
+          export GEM_PATH="$GEM_HOME"
+          export PATH="$GEM_HOME/bin:$PATH"
+          BUNDLER_VERSION=$(awk '/^BUNDLED WITH$/{getline; gsub(/^ +/, ""); print}' Gemfile.lock)
+          gem install bundler --version "$BUNDLER_VERSION" --no-document
+          bundle config set --local path "$RUNNER_TEMP/bundle"
+          bundle install --jobs 4 --retry 3
+
+      - name: Build Beta
+        if: ${{ inputs.build_type == 'beta' }}
+        run: |
+          cd android
+          bundle exec fastlane android beta
+        env:
+          ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_versionType: beta
+
+      - name: Build Release
+        if: ${{ inputs.build_type == 'release' }}
+        run: |
+          cd android
+          bundle exec fastlane android release
+        env:
+          ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_versionType: release
+
+      - name: Cleanup credentials
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/keys.json" "$RUNNER_TEMP/ham.jks"
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi
