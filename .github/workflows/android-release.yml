@@ -17,17 +17,11 @@ jobs:
       public_tag: ${{ steps.public-release.outputs.public_tag }}
 
     steps:
-      - name: Checkout documentation repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
       - name: Checkout Android repository
         uses: actions/checkout@v5
         with:
           repository: whu-ham/ham-android
           ref: ${{ github.event.client_payload.source_ref }}
-          path: ham-android
           token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
           fetch-depth: 0
 
@@ -47,19 +41,14 @@ jobs:
         uses: pnpm/action-setup@v4.2.0
         with:
           version: 10.6.4
-          package_json_file: ham-android/package.json
           run_install: false
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: ham-android/pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: ham-android
         run: pnpm install --frozen-lockfile
 
       - name: Setup Java
@@ -77,16 +66,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup Android NDK and Rust
-        run: |
-          sdkmanager "ndk;27.2.12479018"
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.2.12479018" >> "$GITHUB_ENV"
-          rustup toolchain install stable --profile minimal
-          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
-          cargo install cargo-ndk --locked
-
       - name: Update version files
-        working-directory: ham-android
         env:
           VERSION_CODE: ${{ github.event.client_payload.version_code }}
           VERSION_NAME: ${{ github.event.client_payload.version_name }}
@@ -116,16 +96,61 @@ jobs:
           GOOGLE_AUTH: ${{ secrets.GOOGLE_AUTH }}
 
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-          working-directory: ham-android/android
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ruby >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1; then
+              if [ "$(id -u)" -eq 0 ]; then
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential ruby-full
+              elif command -v sudo >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential ruby-full
+              else
+                echo "::error::Ruby is missing and this runner cannot install packages"
+                exit 1
+              fi
+            else
+              echo "::error::Ruby is missing and apt-get is unavailable"
+              exit 1
+            fi
+          fi
+          if ! command -v make >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1; then
+              if [ "$(id -u)" -eq 0 ]; then
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
+              elif command -v sudo >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential
+              else
+                echo "::error::make is missing and this runner cannot install build tools"
+                exit 1
+              fi
+            else
+              echo "::error::make is missing and apt-get is unavailable"
+              exit 1
+            fi
+          fi
+          ruby --version
+          ruby -e 'abort("Ruby 3.1 or newer is required") if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1")'
+          echo "GEM_HOME=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "GEM_PATH=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/gems/bin" >> "$GITHUB_PATH"
+          export GEM_HOME="$RUNNER_TEMP/gems"
+          export GEM_PATH="$GEM_HOME"
+          export PATH="$GEM_HOME/bin:$PATH"
+          BUNDLER_VERSION=$(awk '/^BUNDLED WITH$/{getline; gsub(/^ +/, ""); print}' Gemfile.lock)
+          gem install bundler --version "$BUNDLER_VERSION" --no-document
+          bundle config set --local path "$RUNNER_TEMP/bundle"
+          bundle install --jobs 4 --retry 3
 
       - name: Build Beta
         if: ${{ github.event.client_payload.build_type == 'beta' }}
         run: |
-          cd ham-android/android
+          cd android
           bundle exec fastlane android beta
         env:
           ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
@@ -135,18 +160,36 @@ jobs:
       - name: Build Release
         if: ${{ github.event.client_payload.build_type == 'release' }}
         run: |
-          cd ham-android/android
+          cd android
           bundle exec fastlane android release
         env:
           ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_versionType: release
 
+      - name: Add fixed-name release APK
+        if: ${{ github.event.client_payload.build_type == 'beta' || github.event.client_payload.build_type == 'release' }}
+        env:
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+        run: |
+          set -euo pipefail
+          if [ "$BUILD_TYPE" = "beta" ]; then
+            APK_NAME="Ham-beta.apk"
+          else
+            APK_NAME="Ham-release.apk"
+          fi
+          SOURCE_APK=$(find android/app/build/outputs/apk -type f -name '*Github*.apk' -print -quit)
+          if [ -z "$SOURCE_APK" ]; then
+            echo "No Github APK found"
+            exit 1
+          fi
+          cp "$SOURCE_APK" "android/app/build/outputs/apk/$APK_NAME"
+
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: release-apks
-          path: ham-android/android/app/build/outputs/apk/**/*.apk
+          path: android/app/build/outputs/apk/**/*.apk
           retention-days: 1
 
       - name: Download APKs
@@ -154,7 +197,6 @@ jobs:
         with:
           name: release-apks
           path: apks
-
       - name: Generate release notes
         id: release-notes
         env:
@@ -269,12 +311,13 @@ jobs:
           else
             RELEASE_ARGS+=(--draft)
           fi
-          GITHUB_APKS=$(find apks -name '*Github*.apk' -type f)
-          if [ -z "$GITHUB_APKS" ]; then
+          GITHUB_APKS=$(find apks -type f -name '*Github*.apk')
+          FIXED_APK=$(find apks -type f \( -name 'Ham-release.apk' -o -name 'Ham-beta.apk' \))
+          if [ -z "$GITHUB_APKS" ] || [ -z "$FIXED_APK" ]; then
             echo "No Github APKs found"
             exit 1
           fi
-          gh release create "${RELEASE_ARGS[@]}" $GITHUB_APKS
+          gh release create "${RELEASE_ARGS[@]}" $GITHUB_APKS $FIXED_APK
 
       - name: Notify Android repository
         env:
