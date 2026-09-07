@@ -151,7 +151,7 @@ jobs:
           bundle install --jobs 4 --retry 3
 
       - name: Build Beta
-        # if: ${{ github.event.client_payload.build_type == 'beta' }}
+        if: ${{ github.event.client_payload.build_type == 'beta' }}
         run: |
           cd android
           bundle exec fastlane android beta
@@ -182,3 +182,158 @@ jobs:
         with:
           name: release-apks
           path: apks
+      - name: Generate release notes
+        id: release-notes
+        env:
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+          VERSION_CODE: ${{ github.event.client_payload.version_code }}
+          VERSION_NAME: ${{ github.event.client_payload.version_name }}
+        run: |
+          VERSION_NAME="$VERSION_NAME"
+          VERSION_CODE="$VERSION_CODE"
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          echo "RELEASE_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
+
+          if [ "$BUILD_TYPE" = "beta" ]; then
+            PREVIOUS_TAG=$(git -C ham-android tag --list 'v*-beta' --sort=-version:refname | head -n 1 || true)
+            TITLE="## 🚀 Beta - ${VERSION_NAME} (${VERSION_CODE})"
+            BUILD_NOTE="> 此版本由 \`master\` 分支自动构建。"
+            IMPORTANT_NOTE_1="- 这是自动生成的 Beta 构建，不建议在生产环境使用。"
+            IMPORTANT_NOTE_2="- 已上传到 Google Play 内部测试。"
+            IMPORTANT_NOTE_3="- Beta 版本可能包含不稳定或未完成的变更，请谨慎使用。"
+          else
+            PREVIOUS_TAG=$(git -C ham-android tag --list 'v*' --sort=-version:refname | grep -Ev -- '-beta$' | head -n 1 || true)
+            TITLE="## 🎉 Release - ${VERSION_NAME} (${VERSION_CODE})"
+            BUILD_NOTE="> 此版本由 \`master\` 分支自动构建。"
+            IMPORTANT_NOTE_1="- 已上传到 Google Play 内部测试。"
+            IMPORTANT_NOTE_2="- 请从下方附件中下载合适的 APK 安装包。"
+            IMPORTANT_NOTE_3=""
+          fi
+
+          COMMITS=""
+          if [ -n "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git -C ham-android log "${PREVIOUS_TAG}..${{ github.event.client_payload.source_ref }}" --no-merges --pretty=format:'- `%h` %s (%an)' | grep -Fv 'chore: bump version to ' || true)
+          fi
+          COMMIT_COUNT=$(printf '%s\n' "$COMMITS" | sed '/^$/d' | wc -l | tr -d ' ')
+
+          {
+            echo "$TITLE"
+            echo
+            echo "$BUILD_NOTE"
+            echo
+            echo "### 📝 更新日志"
+            echo
+            echo "待更新"
+            echo
+            echo "### 🔍 提交信息"
+            echo
+            if [ -n "$PREVIOUS_TAG" ]; then
+              echo "- 基于 \`${PREVIOUS_TAG}\` 之后的变更"
+              echo "- 提交数量：${COMMIT_COUNT}"
+              echo
+              if [ -n "$COMMITS" ]; then
+                echo "$COMMITS"
+              else
+                echo "- 该范围内没有匹配的提交。"
+              fi
+            else
+              echo "- 未找到符合条件的上一版本标签。"
+            fi
+            echo
+            echo "### ⚠️ 注意事项"
+            echo
+            echo "$IMPORTANT_NOTE_1"
+            echo "$IMPORTANT_NOTE_2"
+            if [ -n "$IMPORTANT_NOTE_3" ]; then
+              echo "$IMPORTANT_NOTE_3"
+            fi
+            echo
+            echo "### 📦 安装说明"
+            echo
+            echo "请从下方附件中下载合适的 APK 安装包。"
+            echo
+          } > "$NOTES_FILE"
+
+      - name: Determine public release tag
+        id: public-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+          VERSION_NAME: ${{ github.event.client_payload.version_name }}
+        run: |
+          set -euo pipefail
+          if [ "$BUILD_TYPE" = "release" ]; then
+            PUBLIC_TAG="v${VERSION_NAME}"
+            BETA_NUM=""
+          else
+            EXISTING_TAGS=$(gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags" --paginate --jq '.[].ref')
+            MAX_BETA=0
+            for REF in $EXISTING_TAGS; do
+              case "$REF" in
+                refs/tags/v${VERSION_NAME}-beta*)
+                  NUM="${REF##*-beta}"
+                  if [ "$NUM" -gt "$MAX_BETA" ] 2>/dev/null; then
+                    MAX_BETA="$NUM"
+                  fi
+                  ;;
+              esac
+            done
+            BETA_NUM=$((MAX_BETA + 1))
+            PUBLIC_TAG="v${VERSION_NAME}-beta${BETA_NUM}"
+          fi
+          echo "public_tag=$PUBLIC_TAG" >> "$GITHUB_OUTPUT"
+          echo "beta_num=$BETA_NUM" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+          PUBLIC_TAG: ${{ steps.public-release.outputs.public_tag }}
+        run: |
+          RELEASE_ARGS=("$PUBLIC_TAG" --repo "$GITHUB_REPOSITORY" --title "$PUBLIC_TAG" --notes-file "$RELEASE_NOTES_FILE")
+          if [ "$BUILD_TYPE" = "beta" ]; then
+            RELEASE_ARGS+=(--draft --prerelease)
+          else
+            RELEASE_ARGS+=(--draft)
+          fi
+          GITHUB_APKS=$(find apks -name '*Github*.apk' -type f)
+          if [ -z "$GITHUB_APKS" ]; then
+            echo "No Github APKs found"
+            exit 1
+          fi
+          gh release create "${RELEASE_ARGS[@]}" $GITHUB_APKS
+
+      - name: Notify Android repository
+        env:
+          GH_TOKEN: ${{ secrets.HAM_ANDROID_DISPATCH_TOKEN }}
+          REQUEST_ID: ${{ github.event.client_payload.request_id }}
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+          VERSION_CODE: ${{ github.event.client_payload.version_code }}
+          VERSION_NAME: ${{ github.event.client_payload.version_name }}
+          SOURCE_REF: ${{ github.event.client_payload.source_ref }}
+          PUBLIC_TAG: ${{ steps.public-release.outputs.public_tag }}
+          BETA_NUM: ${{ steps.public-release.outputs.beta_num }}
+        run: |
+          gh api repos/whu-ham/ham-android/dispatches --method POST --input - <<JSON
+          {
+            "event_type": "android-release-completed",
+            "client_payload": {
+              "request_id": "${REQUEST_ID}",
+              "build_type": "${BUILD_TYPE}",
+              "version_code": "${VERSION_CODE}",
+              "version_name": "${VERSION_NAME}",
+              "source_ref": "${SOURCE_REF}",
+              "public_tag": "${PUBLIC_TAG}",
+              "beta_num": "${BETA_NUM}"
+            }
+          }
+          JSON
+
+      - name: Cleanup credentials
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/keys.json" "$RUNNER_TEMP/ham.jks"
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi
+
