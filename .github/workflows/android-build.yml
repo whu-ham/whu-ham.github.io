@@ -3,22 +3,18 @@ name: Android Manual Build
 on:
   workflow_dispatch:
     inputs:
+      branch:
+        description: Android branch to build
+        required: true
+        type: string
+        default: main
       build_type:
-        description: Android build type
+        description: Android build type (beta only)
         required: true
         type: choice
         options:
           - beta
-          - release
         default: beta
-      version_code:
-        description: Android version code
-        required: true
-        type: string
-      version_name:
-        description: Android version name
-        required: true
-        type: string
 
 jobs:
   build:
@@ -31,7 +27,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: whu-ham/ham-android
-          ref: main
+          ref: ${{ inputs.branch }}
           token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
           fetch-depth: 0
 
@@ -76,14 +72,6 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Update version files
-        env:
-          VERSION_CODE: ${{ inputs.version_code }}
-          VERSION_NAME: ${{ inputs.version_name }}
-        run: |
-          echo -n "$VERSION_CODE" > android/metadata/versionCode
-          echo -n "$VERSION_NAME" > android/metadata/versionName
 
       - name: Restore keystore
         shell: bash
@@ -167,16 +155,6 @@ jobs:
           ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_versionType: beta
-
-      - name: Build Release
-        if: ${{ inputs.build_type == 'release' }}
-        run: |
-          cd android
-          bundle exec fastlane android release
-        env:
-          ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
-          ORG_GRADLE_PROJECT_versionType: release
 
       - name: Cleanup credentials
         if: always()
