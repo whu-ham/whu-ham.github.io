@@ -151,7 +151,7 @@ jobs:
           bundle install --jobs 4 --retry 3
 
       - name: Build Beta
-        if: ${{ github.event.client_payload.build_type == 'beta' }}
+        # if: ${{ github.event.client_payload.build_type == 'beta' }}
         run: |
           cd android
           bundle exec fastlane android beta
