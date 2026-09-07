@@ -1,9 +1,6 @@
 name: Android Release Build
 
 on:
-  pull_request:
-    branches:
-      - main
   repository_dispatch:
     types: [android-release-requested]
 
