@@ -167,6 +167,24 @@ jobs:
           ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_versionType: release
 
+      - name: Add fixed-name release APK
+        if: ${{ github.event.client_payload.build_type == 'beta' || github.event.client_payload.build_type == 'release' }}
+        env:
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+        run: |
+          set -euo pipefail
+          if [ "$BUILD_TYPE" = "beta" ]; then
+            APK_NAME="Ham-beta.apk"
+          else
+            APK_NAME="Ham-release.apk"
+          fi
+          SOURCE_APK=$(find android/app/build/outputs/apk -type f -name '*Github*.apk' -print -quit)
+          if [ -z "$SOURCE_APK" ]; then
+            echo "No Github APK found"
+            exit 1
+          fi
+          cp "$SOURCE_APK" "android/app/build/outputs/apk/$APK_NAME"
+
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
@@ -293,12 +311,13 @@ jobs:
           else
             RELEASE_ARGS+=(--draft)
           fi
-          GITHUB_APKS=$(find apks -name '*Github*.apk' -type f)
-          if [ -z "$GITHUB_APKS" ]; then
+          GITHUB_APKS=$(find apks -type f -name '*Github*.apk')
+          FIXED_APK=$(find apks -type f \( -name 'Ham-release.apk' -o -name 'Ham-beta.apk' \))
+          if [ -z "$GITHUB_APKS" ] || [ -z "$FIXED_APK" ]; then
             echo "No Github APKs found"
             exit 1
           fi
-          gh release create "${RELEASE_ARGS[@]}" $GITHUB_APKS
+          gh release create "${RELEASE_ARGS[@]}" $GITHUB_APKS $FIXED_APK
 
       - name: Notify Android repository
         env:
@@ -333,4 +352,3 @@ jobs:
           if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
             rm -f "$GIT_CONFIG_GLOBAL"
           fi
-
