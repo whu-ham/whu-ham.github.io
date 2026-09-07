@@ -210,14 +210,14 @@ jobs:
           echo "RELEASE_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
 
           if [ "$BUILD_TYPE" = "beta" ]; then
-            PREVIOUS_TAG=$(git -C ham-android tag --list 'v*-beta' --sort=-version:refname | head -n 1 || true)
+            PREVIOUS_TAG=$(git tag --list 'v*-beta' --sort=-version:refname | head -n 1 || true)
             TITLE="## 🚀 Beta - ${VERSION_NAME} (${VERSION_CODE})"
             BUILD_NOTE="> 此版本由 \`master\` 分支自动构建。"
             IMPORTANT_NOTE_1="- 这是自动生成的 Beta 构建，不建议在生产环境使用。"
             IMPORTANT_NOTE_2="- 已上传到 Google Play 内部测试。"
             IMPORTANT_NOTE_3="- Beta 版本可能包含不稳定或未完成的变更，请谨慎使用。"
           else
-            PREVIOUS_TAG=$(git -C ham-android tag --list 'v*' --sort=-version:refname | grep -Ev -- '-beta$' | head -n 1 || true)
+            PREVIOUS_TAG=$(git tag --list 'v*' --sort=-version:refname | grep -Ev -- '-beta$' | head -n 1 || true)
             TITLE="## 🎉 Release - ${VERSION_NAME} (${VERSION_CODE})"
             BUILD_NOTE="> 此版本由 \`master\` 分支自动构建。"
             IMPORTANT_NOTE_1="- 已上传到 Google Play 内部测试。"
@@ -227,7 +227,7 @@ jobs:
 
           COMMITS=""
           if [ -n "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git -C ham-android log "${PREVIOUS_TAG}..${{ github.event.client_payload.source_ref }}" --no-merges --pretty=format:'- `%h` %s (%an)' | grep -Fv 'chore: bump version to ' || true)
+            COMMITS=$(git log "${PREVIOUS_TAG}..${{ github.event.client_payload.source_ref }}" --no-merges --pretty=format:'- `%h` %s (%an)' | grep -Fv 'chore: bump version to ' || true)
           fi
           COMMIT_COUNT=$(printf '%s\n' "$COMMITS" | sed '/^$/d' | wc -l | tr -d ' ')
 
