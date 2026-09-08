@@ -12,7 +12,9 @@ jobs:
   build:
     runs-on: macos-latest
     permissions:
-      contents: read
+      # Write is required to push the version bump and the beta metadata back
+      # to this repository.
+      contents: write
     outputs:
       version_name: ${{ steps.build.outputs.version_name }}
       version_code: ${{ steps.build.outputs.version_code }}
@@ -179,7 +181,7 @@ jobs:
           VERSION_NAME: ${{ steps.build.outputs.version_name }}
           VERSION_CODE: ${{ steps.build.outputs.version_code }}
           TESTFLIGHT_URL: ${{ vars.IOS_TESTFLIGHT_URL }}
-          DOCS_REPO_TOKEN: ${{ secrets.HAM_DOCS_REPO_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "$TESTFLIGHT_URL" ]; then
@@ -196,7 +198,9 @@ jobs:
 
           # Checkout the docs site on a scratch path so the build workspace stays clean.
           DOCS_DIR="$RUNNER_TEMP/ham-docs"
-          git clone --depth 1 "https://x-access-token:${DOCS_REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$DOCS_DIR"
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$DOCS_DIR"
+
+          mkdir -p "$DOCS_DIR/docs/src/public"
 
           # Build the JSON with jq so notes containing quotes or newlines stay valid.
           PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
