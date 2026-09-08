@@ -212,14 +212,14 @@ jobs:
           if [ "$BUILD_TYPE" = "beta" ]; then
             PREVIOUS_TAG=$(git tag --list 'v*-beta' --sort=-version:refname | head -n 1 || true)
             TITLE="## 🚀 Beta - ${VERSION_NAME} (${VERSION_CODE})"
-            BUILD_NOTE="> 此版本由 \`master\` 分支自动构建。"
+            BUILD_NOTE="> 此版本由 \`main\` 分支自动构建。"
             IMPORTANT_NOTE_1="- 这是自动生成的 Beta 构建，不建议在生产环境使用。"
             IMPORTANT_NOTE_2="- 已上传到 Google Play 内部测试。"
             IMPORTANT_NOTE_3="- Beta 版本可能包含不稳定或未完成的变更，请谨慎使用。"
           else
             PREVIOUS_TAG=$(git tag --list 'v*' --sort=-version:refname | grep -Ev -- '-beta$' | head -n 1 || true)
             TITLE="## 🎉 Release - ${VERSION_NAME} (${VERSION_CODE})"
-            BUILD_NOTE="> 此版本由 \`master\` 分支自动构建。"
+            BUILD_NOTE="> 此版本由 \`main\` 分支自动构建。"
             IMPORTANT_NOTE_1="- 已上传到 Google Play 内部测试。"
             IMPORTANT_NOTE_2="- 请从下方附件中下载合适的 APK 安装包。"
             IMPORTANT_NOTE_3=""
@@ -263,10 +263,6 @@ jobs:
               echo "$IMPORTANT_NOTE_3"
             fi
             echo
-            echo "### 📦 安装说明"
-            echo
-            echo "请从下方附件中下载合适的 APK 安装包。"
-            echo
           } > "$NOTES_FILE"
 
       - name: Determine public release tag
@@ -307,7 +303,7 @@ jobs:
         run: |
           RELEASE_ARGS=("$PUBLIC_TAG" --repo "$GITHUB_REPOSITORY" --title "$PUBLIC_TAG" --notes-file "$RELEASE_NOTES_FILE")
           if [ "$BUILD_TYPE" = "beta" ]; then
-            RELEASE_ARGS+=(--draft --prerelease)
+            RELEASE_ARGS+=(--prerelease)
           else
             RELEASE_ARGS+=(--draft)
           fi
