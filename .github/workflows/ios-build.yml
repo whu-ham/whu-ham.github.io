@@ -42,6 +42,15 @@ jobs:
           echo "$(brew --prefix ruby)/bin" >> $GITHUB_PATH
           echo "$(gem environment gemdir)/bin" >> $GITHUB_PATH
 
+      - name: Install protobuf
+        run: |
+          # The Podfile's post_install hook shells out to `protoc` to generate
+          # the HamProtobuf Swift sources. That binary is not preinstalled on
+          # GitHub-hosted macOS runners, so the step fails with
+          # "Failed to generate HamProtobuf Swift sources".
+          brew install protobuf
+          protoc --version
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4.2.0
         with:
