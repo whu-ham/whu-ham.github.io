@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: [self-hosted, macOS]
+    runs-on: macos-latest
     permissions:
       contents: read
     outputs:
@@ -39,9 +39,6 @@ jobs:
           PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
           git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/ham-proto.git".insteadOf "https://github.com/whu-ham/ham-proto.git"
           echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
-
-      - name: Clean node_modules
-        run: rm -rf node_modules
 
       - name: Setup Ruby
         run: |
@@ -187,23 +184,9 @@ jobs:
           fi
           rm -f "$RUNNER_TEMP/private_keys/AuthKey.p8"
 
-      - name: Cleanup Build Cache
+      - name: Cleanup proto git config
         if: always()
         run: |
           if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
             rm -f "$GIT_CONFIG_GLOBAL"
-          fi
-          # Clean Xcode DerivedData
-          rm -rf ~/Library/Developer/Xcode/DerivedData/*Ham* 2>/dev/null || true
-          # Clean Xcode Archives
-          rm -rf ~/Library/Developer/Xcode/Archives 2>/dev/null || true
-          # Clean CocoaPods repos if not updated for over 30 days
-          if [ -d ~/.cocoapods/repos ]; then
-            REPOS_MTIME=$(stat -f %m ~/.cocoapods/repos)
-            NOW=$(date +%s)
-            AGE=$(( (NOW - REPOS_MTIME) / 86400 ))
-            if [ "$AGE" -gt 30 ]; then
-              echo "CocoaPods repos cache is ${AGE} days old, cleaning up..."
-              rm -rf ~/.cocoapods/repos
-            fi
           fi
