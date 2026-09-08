@@ -107,6 +107,7 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
           VERSION_NUMBER: ${{ github.event.client_payload.version_number }}
           BUILD_NUMBER: ${{ github.event.client_payload.build_number }}
           PUBLIC_TESTING: ${{ github.event.client_payload.distribution == 'public' }}
@@ -171,6 +172,53 @@ jobs:
             --data-binary @- <<JSON
           {"event_type":"ios-release-completed","client_payload":{"request_id":"${REQUEST_ID}","source_ref":"${SOURCE_REF}","version_name":"${VERSION_NAME}","version_code":"${VERSION_CODE}","tag":"${TAG}","commit_sha":"${COMMIT_SHA}"}}
           JSON
+
+      - name: Publish beta info to the docs site
+        env:
+          RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
+          VERSION_NAME: ${{ steps.build.outputs.version_name }}
+          VERSION_CODE: ${{ steps.build.outputs.version_code }}
+          TESTFLIGHT_URL: ${{ vars.IOS_TESTFLIGHT_URL }}
+          DOCS_REPO_TOKEN: ${{ secrets.HAM_DOCS_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$TESTFLIGHT_URL" ]; then
+            echo "::error::The IOS_TESTFLIGHT_URL repository variable is not set."
+            exit 1
+          fi
+          case "$TESTFLIGHT_URL" in
+            https://*|itms-beta://*) ;;
+            *)
+              echo "::error::IOS_TESTFLIGHT_URL must start with https:// or itms-beta://"
+              exit 1
+              ;;
+          esac
+
+          # Checkout the docs site on a scratch path so the build workspace stays clean.
+          DOCS_DIR="$RUNNER_TEMP/ham-docs"
+          git clone --depth 1 "https://x-access-token:${DOCS_REPO_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$DOCS_DIR"
+
+          # Build the JSON with jq so notes containing quotes or newlines stay valid.
+          PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          jq -n \
+            --arg version_name "$VERSION_NAME" \
+            --arg version_code "$VERSION_CODE" \
+            --arg release_notes "$RELEASE_NOTES" \
+            --arg testflight_url "$TESTFLIGHT_URL" \
+            --arg published_at "$PUBLISHED_AT" \
+            '{version_name:$version_name,version_code:$version_code,release_notes:$release_notes,testflight_url:$testflight_url,published_at:$published_at}' \
+            > "$DOCS_DIR/docs/src/public/ios-beta.json"
+
+          cd "$DOCS_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/src/public/ios-beta.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ios): publish beta ${VERSION_NAME} (${VERSION_CODE})"
+            git push origin HEAD:main
+          else
+            echo "Beta info unchanged, nothing to commit."
+          fi
 
       - name: Cleanup Keychain
         if: always()
