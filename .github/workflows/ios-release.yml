@@ -180,21 +180,12 @@ jobs:
           RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
           VERSION_NAME: ${{ steps.build.outputs.version_name }}
           VERSION_CODE: ${{ steps.build.outputs.version_code }}
-          TESTFLIGHT_URL: ${{ vars.IOS_TESTFLIGHT_URL }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ -z "$TESTFLIGHT_URL" ]; then
-            echo "::error::The IOS_TESTFLIGHT_URL repository variable is not set."
-            exit 1
-          fi
-          case "$TESTFLIGHT_URL" in
-            https://*|itms-beta://*) ;;
-            *)
-              echo "::error::IOS_TESTFLIGHT_URL must start with https:// or itms-beta://"
-              exit 1
-              ;;
-          esac
+          # Keep in sync with the fallback invite in
+          # docs/page/download/component/IOSDownloadPanel.vue.
+          TESTFLIGHT_URL="itms-beta://testflight.apple.com/join/waKNnCG3"
 
           # Checkout the docs site on a scratch path so the build workspace stays clean.
           DOCS_DIR="$RUNNER_TEMP/ham-docs"
