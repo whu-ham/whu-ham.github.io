@@ -99,6 +99,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cocoapods-
 
+      - name: Cache SwiftPM artifacts
+        uses: actions/cache@v4
+        with:
+          # Binary artifacts (the protoc bundle, OpenSSL.xcframework) and the
+          # cloned package repositories. Both the SwiftPM CLI and xcodebuild
+          # read them from here, so a hit means neither has to download.
+          path: |
+            ~/Library/Caches/org.swift.swiftpm/artifacts
+            ~/Library/Caches/org.swift.swiftpm/repositories
+          key: ${{ runner.os }}-swiftpm-${{ hashFiles('Ham/Ham.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'Component/HamProtobuf/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftpm-
+
       - name: Install CocoaPods
         run: |
           # Pin the version recorded in Ham/Podfile.lock, which must stay at
