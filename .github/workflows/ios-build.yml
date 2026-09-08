@@ -50,7 +50,8 @@ jobs:
         uses: pnpm/action-setup@v4.2.0
         with:
           version: 10.6.4
-          run_install: true
+          # pod_install.sh runs `pnpm install` before applying the glog patch.
+          run_install: false
 
       - name: Bundle Install
         run: |
@@ -85,14 +86,41 @@ jobs:
           security set-keychain-settings -t 3600 -u build.keychain
           security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed s/\"//g)
 
+      - name: Cache CocoaPods downloads
+        uses: actions/cache@v4
+        with:
+          # Only the download cache. ~/.cocoapods/repos is intentionally
+          # excluded: it held the multi-gigabyte git spec repo this workflow
+          # used before switching to CDN, and restoring it would cost more
+          # than it saves.
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('Ham/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
       - name: Install CocoaPods
-        run: gem install cocoapods --no-document
+        run: |
+          # Pin the version recorded in Ham/Podfile.lock, which must stay at
+          # 1.17.0. A newer CocoaPods rewrites every checksum in that file.
+          COCOAPODS_VERSION=$(awk -F': *' '/^COCOAPODS:/{print $2; exit}' Ham/Podfile.lock)
+          if [ -z "$COCOAPODS_VERSION" ]; then
+            echo "::error::Could not read the COCOAPODS version from Ham/Podfile.lock"
+            exit 1
+          fi
+          if gem list -i cocoapods --version "$COCOAPODS_VERSION" >/dev/null; then
+            echo "CocoaPods $COCOAPODS_VERSION already installed"
+          else
+            echo "Installing CocoaPods $COCOAPODS_VERSION"
+            gem install cocoapods --version "$COCOAPODS_VERSION" --no-document
+          fi
 
       - name: CocoaPods Install
         run: |
-          find ~/.cocoapods/repos -name "index.lock" -delete 2>/dev/null || true
-          cd Ham
-          pod install --repo-update
+          # Use the project's own script rather than calling `pod install`
+          # directly. It also applies the glog configure patch that
+          # `pnpm install` alone does not, and it runs without `--repo-update`
+          # because Podfile.lock pins every version.
+          ./pod_install.sh
 
       - name: Build IPA
         env:
