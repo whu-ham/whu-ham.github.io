@@ -278,6 +278,10 @@ jobs:
           JSON
 
       - name: Publish beta info to the docs site
+        # Internal builds go to the internal TestFlight group only. The docs
+        # site is public and links to a public TestFlight invite, so an
+        # internal build must not appear there.
+        if: ${{ github.event.client_payload.distribution == 'public' }}
         env:
           RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
           VERSION_NAME: ${{ steps.build.outputs.version_name }}
