@@ -198,6 +198,27 @@ jobs:
         with:
           name: release-apks
           path: apks
+      - name: Resolve previous public release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
+        run: |
+          set -euo pipefail
+          # Public releases here use a different tag scheme (v1.7.6-beta2) from
+          # the Android repository the notes are generated in (v1.7.6.191-beta).
+          # The commit range has to come from the Android tags, since those are
+          # real git refs, but the notes should show the public name users see.
+          if [ "$BUILD_TYPE" = "release" ]; then
+            PREVIOUS_PUBLIC_TAG=$(gh release list --repo "$GITHUB_REPOSITORY" \
+              --limit 100 --json tagName,isPrerelease \
+              --jq '[.[] | select(.isPrerelease | not)][0].tagName // empty' || true)
+          else
+            PREVIOUS_PUBLIC_TAG=$(gh release list --repo "$GITHUB_REPOSITORY" \
+              --limit 100 --json tagName,isPrerelease \
+              --jq '[.[] | select(.isPrerelease)][0].tagName // empty' || true)
+          fi
+          echo "PREVIOUS_PUBLIC_TAG=$PREVIOUS_PUBLIC_TAG" >> "$GITHUB_ENV"
+
       - name: Generate release notes
         id: release-notes
         env:
@@ -210,19 +231,27 @@ jobs:
           NOTES_FILE="$RUNNER_TEMP/release-notes.md"
           echo "RELEASE_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
 
+          # Cap the commit list so a long release window cannot produce an
+          # unusable wall of text.
+          MAX_COMMITS=50
+
+          # Set by the previous step. Fall back to the Android tag when the
+          # public release lookup came back empty.
+          PREVIOUS_PUBLIC_TAG="${PREVIOUS_PUBLIC_TAG:-}"
+
           if [ "$BUILD_TYPE" = "beta" ]; then
-            PREVIOUS_TAG=$(git tag --list 'v*-beta' --sort=-version:refname | head -n 1 || true)
+            PREVIOUS_TAG=$(git tag --list 'v*-beta*' --sort=-version:refname | head -n 1 || true)
             TITLE="## 🚀 Beta - ${VERSION_NAME} (${VERSION_CODE})"
             BUILD_NOTE="> 此版本由 \`main\` 分支自动构建。"
             IMPORTANT_NOTE_1="- 这是自动生成的 Beta 构建，不建议在生产环境使用。"
             IMPORTANT_NOTE_2="- 已上传到 Google Play 内部测试。"
             IMPORTANT_NOTE_3="- Beta 版本可能包含不稳定或未完成的变更，请谨慎使用。"
           else
-            PREVIOUS_TAG=$(git tag --list 'v*' --sort=-version:refname | grep -Ev -- '-beta$' | head -n 1 || true)
+            PREVIOUS_TAG=$(git tag --list 'v*' --sort=-version:refname | grep -Ev -- '-beta' | head -n 1 || true)
             TITLE="## 🎉 Release - ${VERSION_NAME} (${VERSION_CODE})"
             BUILD_NOTE="> 此版本由 \`main\` 分支自动构建。"
             IMPORTANT_NOTE_1="- 已上传到 Google Play 内部测试。"
-            IMPORTANT_NOTE_2="- 请从下方附件中下载合适的 APK 安装包。"
+            IMPORTANT_NOTE_2=""
             IMPORTANT_NOTE_3=""
           fi
 
@@ -231,6 +260,10 @@ jobs:
             COMMITS=$(git log "${PREVIOUS_TAG}..${{ github.event.client_payload.source_ref }}" --no-merges --pretty=format:'- `%h` %s (%an)' | grep -Fv 'chore: bump version to ' || true)
           fi
           COMMIT_COUNT=$(printf '%s\n' "$COMMITS" | sed '/^$/d' | wc -l | tr -d ' ')
+          SHOWN_COMMITS="$COMMITS"
+          if [ "$COMMIT_COUNT" -gt "$MAX_COMMITS" ]; then
+            SHOWN_COMMITS=$(printf '%s\n' "$COMMITS" | sed '/^$/d' | head -n "$MAX_COMMITS")
+          fi
 
           {
             echo "$TITLE"
@@ -244,25 +277,34 @@ jobs:
             echo "### 🔍 提交信息"
             echo
             if [ -n "$PREVIOUS_TAG" ]; then
-              echo "- 基于 \`${PREVIOUS_TAG}\` 之后的变更"
-              echo "- 提交数量：${COMMIT_COUNT}"
+              # A blockquote, so GitHub can never join this line to the
+              # commit list that follows it.
+              if [ -n "$PREVIOUS_PUBLIC_TAG" ]; then
+                echo "> 基于 \`${PREVIOUS_PUBLIC_TAG}\` 之后的变更，提交数量：${COMMIT_COUNT}"
+              else
+                echo "> 基于 \`${PREVIOUS_TAG}\` 之后的变更，提交数量：${COMMIT_COUNT}"
+              fi
               echo
-              if [ -n "$COMMITS" ]; then
-                echo "$COMMITS"
+              if [ -n "$SHOWN_COMMITS" ]; then
+                echo "$SHOWN_COMMITS"
+                if [ "$COMMIT_COUNT" -gt "$MAX_COMMITS" ]; then
+                  echo
+                  echo "- 仅显示最近 ${MAX_COMMITS} 条提交，完整列表见提交历史。"
+                fi
               else
                 echo "- 该范围内没有匹配的提交。"
               fi
             else
-              echo "- 未找到符合条件的上一版本标签。"
+              echo "未找到符合条件的上一版本标签。"
             fi
             echo
             echo "### ⚠️ 注意事项"
             echo
-            echo "$IMPORTANT_NOTE_1"
-            echo "$IMPORTANT_NOTE_2"
-            if [ -n "$IMPORTANT_NOTE_3" ]; then
-              echo "$IMPORTANT_NOTE_3"
-            fi
+            for NOTE in "$IMPORTANT_NOTE_1" "$IMPORTANT_NOTE_2" "$IMPORTANT_NOTE_3"; do
+              if [ -n "$NOTE" ]; then
+                echo "$NOTE"
+              fi
+            done
             echo
           } > "$NOTES_FILE"
 

@@ -36,11 +36,19 @@ jobs:
           git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/ham-proto.git".insteadOf "https://github.com/whu-ham/ham-proto.git"
           echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
 
-      - name: Setup Ruby
+      - name: Install fastlane
         run: |
-          brew install ruby
-          echo "$(brew --prefix ruby)/bin" >> $GITHUB_PATH
-          echo "$(gem environment gemdir)/bin" >> $GITHUB_PATH
+          # fastlane is the only thing the Ruby toolchain was installed for:
+          # the Gemfile lists just `gem "fastlane"`, there is no
+          # fastlane/Pluginfile, and the lane uses only built-in actions.
+          # Installing it with brew instead of Bundler also avoids a PATH
+          # conflict: `brew install ruby` upgrades the runner's Ruby 3.4 to
+          # 4.0, but /opt/homebrew/lib/ruby/gems/3.4.0/bin/bundle shadows the
+          # new one, so `bundle install` and `bundle exec fastlane` end up
+          # looking in different gem directories and the latter fails with
+          # "Could not find fastlane-... in locally installed gems".
+          brew install fastlane
+          fastlane --version
 
       - name: Install protobuf
         run: |
@@ -62,18 +70,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Bundle Install
-        run: |
-          # 1) Read Bundler version from Gemfile.lock
-          BUNDLER_VERSION=$(ruby -e 'lock = File.read("Gemfile.lock"); puts lock[/BUNDLED WITH\n\s+([\d.]+)/, 1]')
-
-          # 2) Install the locked Bundler version to fix environment mismatch
-          gem install bundler -v "$BUNDLER_VERSION" --no-document
-
-          # 3) Run Bundler using an absolute path from RubyGems bindir (most reliable)
-          #    This ensures we call the executable from the active RubyGems environment.
-          "$(ruby -e 'print Gem.bindir')/bundle" install
 
       - name: Setup App Store Connect API Key
         env:
@@ -137,6 +133,57 @@ jobs:
             gem install cocoapods --version "$COCOAPODS_VERSION" --no-document
           fi
 
+      - name: Pre-resolve Xcode workspace Swift packages
+        run: |
+          # xcodebuild resolves the workspace's 27 Swift packages itself, and
+          # on macOS runners that hangs indefinitely:
+          #
+          #   https://github.com/actions/runner-images/issues/13175 (still open)
+          #
+          # The SwiftPM CLI resolves the same graph reliably and writes to the
+          # same shared cache (~/Library/Caches/org.swift.swiftpm) that
+          # xcodebuild reads, so warming it here lets xcodebuild work from the
+          # cache instead of resolving over the network.
+          #
+          # The Xcode project has no Package.swift of its own -- its packages
+          # live in project.pbxproj -- so build a throwaway one from the
+          # workspace's Package.resolved, pinning every version exactly.
+          RESOLVED="Ham/Ham.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          WARM_DIR="$RUNNER_TEMP/swiftpm-warm"
+          mkdir -p "$WARM_DIR"
+          python3 - "$RESOLVED" "$WARM_DIR/Package.swift" <<'PY'
+          import json, sys
+          resolved_path, out_path = sys.argv[1], sys.argv[2]
+          with open(resolved_path) as handle:
+              pins = json.load(handle).get("pins", [])
+          if not pins:
+              sys.exit("No pins found in %s" % resolved_path)
+          lines = [
+              "// swift-tools-version: 5.9",
+              "import PackageDescription",
+              "",
+              "let package = Package(",
+              '    name: "SwiftPMWarmCache",',
+              "    products: [],",
+              "    dependencies: [",
+          ]
+          for index, pin in enumerate(sorted(pins, key=lambda p: p["identity"])):
+              version = pin.get("state", {}).get("version")
+              if not version:
+                  continue
+              comma = "," if index < len(pins) - 1 else ""
+              lines.append('        .package(url: "%s", exact: "%s")%s'
+                           % (pin["location"], version, comma))
+          lines += ["    ],", "    targets: []", ")"]
+          with open(out_path, "w") as handle:
+              handle.write("\n".join(lines) + "\n")
+          print("Wrote %s with %d dependencies" % (out_path, len(pins)))
+          PY
+          cd "$WARM_DIR"
+          # One operation at a time: concurrent fetches are what make the
+          # xcodebuild path hang, and serialising them was reported to fix it.
+          env SWIFTPM_MAX_CONCURRENT_OPERATIONS=1 swift package resolve
+
       - name: CocoaPods Install
         run: |
           # Use the project's own script rather than calling `pod install`
@@ -146,6 +193,10 @@ jobs:
           ./pod_install.sh
 
       - name: Build IPA
+        # The default job timeout is 6 hours, and the SwiftPM hang shows up as
+        # silence rather than an error, so cap this step explicitly. The bound
+        # is generous because a cold archive of this workspace takes a while.
+        timeout-minutes: 120
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -153,15 +204,7 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: bundle exec fastlane ios build
-
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-manual-build
-          path: fastlane/build/ham.ipa
-          retention-days: 7
-          if-no-files-found: error
+        run: fastlane ios build
 
       - name: Cleanup Keychain
         if: always()
