@@ -36,11 +36,19 @@ jobs:
           git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/ham-proto.git".insteadOf "https://github.com/whu-ham/ham-proto.git"
           echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
 
-      - name: Setup Ruby
+      - name: Install fastlane
         run: |
-          brew install ruby
-          echo "$(brew --prefix ruby)/bin" >> $GITHUB_PATH
-          echo "$(gem environment gemdir)/bin" >> $GITHUB_PATH
+          # fastlane is the only thing the Ruby toolchain was installed for:
+          # the Gemfile lists just `gem "fastlane"`, there is no
+          # fastlane/Pluginfile, and the lane uses only built-in actions.
+          # Installing it with brew instead of Bundler also avoids a PATH
+          # conflict: `brew install ruby` upgrades the runner's Ruby 3.4 to
+          # 4.0, but /opt/homebrew/lib/ruby/gems/3.4.0/bin/bundle shadows the
+          # new one, so `bundle install` and `bundle exec fastlane` end up
+          # looking in different gem directories and the latter fails with
+          # "Could not find fastlane-... in locally installed gems".
+          brew install fastlane
+          fastlane --version
 
       - name: Install protobuf
         run: |
@@ -62,18 +70,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Bundle Install
-        run: |
-          # 1) Read Bundler version from Gemfile.lock
-          BUNDLER_VERSION=$(ruby -e 'lock = File.read("Gemfile.lock"); puts lock[/BUNDLED WITH\n\s+([\d.]+)/, 1]')
-
-          # 2) Install the locked Bundler version to fix environment mismatch
-          gem install bundler -v "$BUNDLER_VERSION" --no-document
-
-          # 3) Run Bundler using an absolute path from RubyGems bindir (most reliable)
-          #    This ensures we call the executable from the active RubyGems environment.
-          "$(ruby -e 'print Gem.bindir')/bundle" install
 
       - name: Setup App Store Connect API Key
         env:
@@ -153,7 +149,7 @@ jobs:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: bundle exec fastlane ios build
+        run: fastlane ios build
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
