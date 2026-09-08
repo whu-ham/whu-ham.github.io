@@ -84,16 +84,6 @@ jobs:
         env:
           HAM_KEYSTORE_B64: ${{ secrets.HAM_KEYSTORE_B64 }}
 
-      - name: Setup GOOGLE_AUTH key
-        run: |
-          set -euo pipefail
-          KEY_PATH="$RUNNER_TEMP/keys.json"
-          echo "$GOOGLE_AUTH" > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "SUPPLY_JSON_KEY=$KEY_PATH" >> "$GITHUB_ENV"
-        env:
-          GOOGLE_AUTH: ${{ secrets.GOOGLE_AUTH }}
-
       - name: Setup Ruby
         working-directory: android
         shell: bash
@@ -150,7 +140,7 @@ jobs:
         if: ${{ inputs.build_type == 'beta' }}
         run: |
           cd android
-          bundle exec fastlane android beta
+          bundle exec fastlane android build
         env:
           ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
           ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
@@ -159,7 +149,7 @@ jobs:
       - name: Cleanup credentials
         if: always()
         run: |
-          rm -f "$RUNNER_TEMP/keys.json" "$RUNNER_TEMP/ham.jks"
+          rm -f "$RUNNER_TEMP/ham.jks"
           if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
             rm -f "$GIT_CONFIG_GLOBAL"
           fi

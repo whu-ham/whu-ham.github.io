@@ -15,7 +15,8 @@ type MessageKey =
   | 'downloadLinksTitle'
   | 'downloadsSuffix'
   | 'download'
-  | 'preRelease';
+  | 'preRelease'
+  | 'downloadOnTestflight';
 
 const messages: Record<LocaleKey, Record<MessageKey, string>> = {
   zh: {
@@ -32,6 +33,7 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
     downloadsSuffix: '次下载',
     download: '下载',
     preRelease: '预发布',
+    downloadOnTestflight: '通过 TestFlight 下载',
   },
   en: {
     requestFailedTitle: 'Request failed',
@@ -48,6 +50,7 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
     downloadsSuffix: ' downloads',
     download: 'Download',
     preRelease: 'Pre-release',
+    downloadOnTestflight: 'Download on TestFlight',
   },
   ja: {
     requestFailedTitle: '取得に失敗しました',
@@ -63,6 +66,7 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
     downloadsSuffix: '回のダウンロード',
     download: 'ダウンロード',
     preRelease: 'プレリリース',
+    downloadOnTestflight: 'TestFlightでダウンロード',
   },
 };
 

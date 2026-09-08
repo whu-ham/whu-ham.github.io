@@ -1,0 +1,235 @@
+name: iOS Release Build
+
+on:
+  repository_dispatch:
+    types: [ios-release-requested]
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      # Write is required to push the version bump and the beta metadata back
+      # to this repository.
+      contents: write
+    outputs:
+      version_name: ${{ steps.build.outputs.version_name }}
+      version_code: ${{ steps.build.outputs.version_code }}
+      tag: ${{ steps.build.outputs.tag }}
+      commit_sha: ${{ steps.bump.outputs.commit_sha }}
+
+    steps:
+      - name: Checkout iOS repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-ios
+          ref: ${{ github.event.client_payload.source_ref }}
+          token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure private proto repository access
+        env:
+          PROTO_REPO_TOKEN: ${{ secrets.PROTO_REPO_TOKEN }}
+        run: |
+          if [ -z "$PROTO_REPO_TOKEN" ]; then
+            echo "::error::PROTO_REPO_TOKEN is required to clone whu-ham/ham-proto"
+            exit 1
+          fi
+          PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
+          git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/ham-proto.git".insteadOf "https://github.com/whu-ham/ham-proto.git"
+          echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
+
+      - name: Setup Ruby
+        run: |
+          brew install ruby
+          echo "$(brew --prefix ruby)/bin" >> $GITHUB_PATH
+          echo "$(gem environment gemdir)/bin" >> $GITHUB_PATH
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.6.4
+          run_install: true
+
+      - name: Bundle Install
+        run: |
+          # 1) Read Bundler version from Gemfile.lock
+          BUNDLER_VERSION=$(ruby -e 'lock = File.read("Gemfile.lock"); puts lock[/BUNDLED WITH\n\s+([\d.]+)/, 1]')
+
+          # 2) Install the locked Bundler version to fix environment mismatch
+          gem install bundler -v "$BUNDLER_VERSION" --no-document
+
+          # 3) Run Bundler using an absolute path from RubyGems bindir (most reliable)
+          #    This ensures we call the executable from the active RubyGems environment.
+          "$(ruby -e 'print Gem.bindir')/bundle" install
+
+      - name: Setup App Store Connect API Key
+        env:
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/private_keys"
+          echo "$ASC_KEY_CONTENT" > "$RUNNER_TEMP/private_keys/AuthKey.p8"
+
+      - name: Create Keychain
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Save original default keychain for later restoration
+          ORIGINAL_DEFAULT=$(security default-keychain -d user | xargs)
+          echo "ORIGINAL_DEFAULT_KEYCHAIN=$ORIGINAL_DEFAULT" >> $GITHUB_ENV
+          security delete-keychain build.keychain 2>/dev/null || true
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed s/\"//g)
+
+      - name: Install CocoaPods
+        run: gem install cocoapods --no-document
+
+      - name: CocoaPods Install
+        run: |
+          find ~/.cocoapods/repos -name "index.lock" -delete 2>/dev/null || true
+          cd Ham
+          pod install --repo-update
+
+      - name: Build & Upload to TestFlight
+        id: build
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/private_keys/AuthKey.p8
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
+          VERSION_NUMBER: ${{ github.event.client_payload.version_number }}
+          BUILD_NUMBER: ${{ github.event.client_payload.build_number }}
+          PUBLIC_TESTING: ${{ github.event.client_payload.distribution == 'public' }}
+          EXTERNAL_TESTING_GROUP: ${{ github.event.client_payload.external_testing_group }}
+          CHANGELOG: ${{ github.event.client_payload.changelog }}
+        run: bundle exec fastlane ios beta
+
+      - name: Validate build outputs
+        env:
+          VERSION_NAME: ${{ steps.build.outputs.version_name }}
+          VERSION_CODE: ${{ steps.build.outputs.version_code }}
+          TAG: ${{ steps.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # `set -e` does not abort on a failing `[[ ]]`, so check each value explicitly.
+          [[ "$VERSION_NAME" =~ ^[0-9]+([.][0-9]+)*$ ]] || { echo "::error::Invalid version_name: $VERSION_NAME"; exit 1; }
+          [[ "$VERSION_CODE" =~ ^[0-9]+$ ]] || { echo "::error::Invalid version_code: $VERSION_CODE"; exit 1; }
+          [[ "$TAG" =~ ^v[0-9A-Za-z.+-]+$ ]] || { echo "::error::Invalid tag: $TAG"; exit 1; }
+
+      - name: Commit version bump
+        id: bump
+        env:
+          VERSION_NAME: ${{ steps.build.outputs.version_name }}
+          VERSION_CODE: ${{ steps.build.outputs.version_code }}
+          SOURCE_REF: ${{ github.event.client_payload.source_ref }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: bump version to ${VERSION_NAME} (${VERSION_CODE})"
+          fi
+
+          if ! git pull --rebase origin "$SOURCE_REF"; then
+            git rebase --abort
+            echo "::error::Rebase onto ${SOURCE_REF} failed. TestFlight already received ${VERSION_NAME} (${VERSION_CODE})."
+            exit 1
+          fi
+
+          git push origin "HEAD:${SOURCE_REF}"
+          COMMIT_SHA=$(git rev-parse HEAD)
+          [[ "$COMMIT_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Invalid commit sha: $COMMIT_SHA"; exit 1; }
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Notify iOS repository
+        env:
+          HAM_IOS_DISPATCH_TOKEN: ${{ secrets.HAM_IOS_DISPATCH_TOKEN }}
+          REQUEST_ID: ${{ github.event.client_payload.request_id }}
+          SOURCE_REF: ${{ github.event.client_payload.source_ref }}
+          VERSION_NAME: ${{ steps.build.outputs.version_name }}
+          VERSION_CODE: ${{ steps.build.outputs.version_code }}
+          TAG: ${{ steps.build.outputs.tag }}
+          COMMIT_SHA: ${{ steps.bump.outputs.commit_sha }}
+        run: |
+          # Use curl because the gh CLI is not guaranteed to exist on self-hosted macOS runners.
+          curl --fail-with-body -sS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${HAM_IOS_DISPATCH_TOKEN}" \
+            "https://api.github.com/repos/whu-ham/ham-ios/dispatches" \
+            --data-binary @- <<JSON
+          {"event_type":"ios-release-completed","client_payload":{"request_id":"${REQUEST_ID}","source_ref":"${SOURCE_REF}","version_name":"${VERSION_NAME}","version_code":"${VERSION_CODE}","tag":"${TAG}","commit_sha":"${COMMIT_SHA}"}}
+          JSON
+
+      - name: Publish beta info to the docs site
+        env:
+          RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
+          VERSION_NAME: ${{ steps.build.outputs.version_name }}
+          VERSION_CODE: ${{ steps.build.outputs.version_code }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Keep in sync with the fallback invite in
+          # docs/page/download/component/IOSDownloadPanel.vue.
+          TESTFLIGHT_URL="itms-beta://testflight.apple.com/join/waKNnCG3"
+
+          # Checkout the docs site on a scratch path so the build workspace stays clean.
+          DOCS_DIR="$RUNNER_TEMP/ham-docs"
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$DOCS_DIR"
+
+          mkdir -p "$DOCS_DIR/docs/src/public"
+
+          # Build the JSON with jq so notes containing quotes or newlines stay valid.
+          PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          jq -n \
+            --arg version_name "$VERSION_NAME" \
+            --arg version_code "$VERSION_CODE" \
+            --arg release_notes "$RELEASE_NOTES" \
+            --arg testflight_url "$TESTFLIGHT_URL" \
+            --arg published_at "$PUBLISHED_AT" \
+            '{version_name:$version_name,version_code:$version_code,release_notes:$release_notes,testflight_url:$testflight_url,published_at:$published_at}' \
+            > "$DOCS_DIR/docs/src/public/ios-beta.json"
+
+          cd "$DOCS_DIR"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/src/public/ios-beta.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ios): publish beta ${VERSION_NAME} (${VERSION_CODE})"
+            git push origin HEAD:main
+          else
+            echo "Beta info unchanged, nothing to commit."
+          fi
+
+      - name: Cleanup Keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain 2>/dev/null || true
+          # Restore original default keychain
+          if [ -n "$ORIGINAL_DEFAULT_KEYCHAIN" ]; then
+            security default-keychain -s "$ORIGINAL_DEFAULT_KEYCHAIN" 2>/dev/null || true
+          else
+            security default-keychain -s ~/Library/Keychains/login.keychain-db 2>/dev/null || true
+          fi
+          rm -f "$RUNNER_TEMP/private_keys/AuthKey.p8"
+
+      - name: Cleanup proto git config
+        if: always()
+        run: |
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi

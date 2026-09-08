@@ -4,16 +4,20 @@ import {
   getLatestIOSVersionInfo,
   IOSVersionInfo,
 } from '../service/ios_version_fetch';
+import {getLatestIOSBetaInfo, IOSBetaInfo} from '../service/ios_beta_fetch';
 import ArrowLink from '../../../components/ArrowLink.vue';
 import {formatDate} from '../service/date';
 import NoticeView from './NoticeView.vue';
+import IOSBetaItem from './IOSBetaItem.vue';
 import {useDownloadI18n} from '../service/i18n';
 
 const versionInfo = ref<IOSVersionInfo>();
+const betaInfo = ref<IOSBetaInfo | null>(null);
 const {t} = useDownloadI18n();
 
 onMounted(async () => {
   versionInfo.value = await getLatestIOSVersionInfo();
+  betaInfo.value = await getLatestIOSBetaInfo();
 });
 </script>
 
@@ -33,19 +37,22 @@ onMounted(async () => {
     </div>
 
     <div>
-      <h3>{{ t('betaTitle') }}</h3>
-      <NoticeView :title="t('noticeTitle')">
-        <p>
-          {{ t('testflightPromptPrefix') }}
-          <ArrowLink
-            href="https://apps.apple.com/us/app/testflight/id899247664"
-            text="TestFlight" />
-          {{ t('testflightPromptSuffix') }}
-        </p>
-      </NoticeView>
-      <ArrowLink
-        href="itms-beta://testflight.apple.com/join/waKNnCG3"
-        :text="t('joinTestflight')" />
+      <IOSBetaItem v-if="betaInfo" :item="betaInfo" />
+      <div v-else>
+        <h3>{{ t('betaTitle') }}</h3>
+        <NoticeView :title="t('noticeTitle')">
+          <p>
+            {{ t('testflightPromptPrefix') }}
+            <ArrowLink
+              href="https://apps.apple.com/us/app/testflight/id899247664"
+              text="TestFlight" />
+            {{ t('testflightPromptSuffix') }}
+          </p>
+        </NoticeView>
+        <ArrowLink
+          href="itms-beta://testflight.apple.com/join/waKNnCG3"
+          :text="t('joinTestflight')" />
+      </div>
     </div>
   </div>
 </template>
