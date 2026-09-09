@@ -161,8 +161,11 @@ jobs:
           # the wait well below the job timeout and let the step fail fast.
           emulator-boot-timeout: 600
           working-directory: android
+          # The action runs this via `sh -c`, not bash, so bash-only shell
+          # options are illegal here. `set -o pipefail` fails the step with
+          # "set: Illegal option -o pipefail" before Gradle ever starts.
           script: |
-            set -euo pipefail
+            set -eu
             chmod +x ./gradlew
             TASKS=":app:connectedGithubDebugAndroidTest"
             if [ "${{ inputs.scope }}" = "all" ]; then
