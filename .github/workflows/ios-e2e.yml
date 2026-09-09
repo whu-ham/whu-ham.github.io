@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   e2e:
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 180
     permissions:
       contents: read
