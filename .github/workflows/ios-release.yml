@@ -361,13 +361,13 @@ jobs:
             exit 1
           }
 
-          # The ruleset requires a green eslint check and approves zero
-          # reviewers, so the PR can merge itself once that check passes.
-          gh pr merge "$BRANCH" \
-            --repo "$GITHUB_REPOSITORY" \
-            --squash \
-            --auto ||
-            echo "::warning::Could not enable auto-merge; merge the beta metadata PR manually."
+          # Do not enable auto-merge. GitHub holds workflow runs triggered by a
+          # GITHUB_TOKEN-created pull request for manual approval, so the
+          # required eslint check never turns green on its own and auto-merge
+          # would never fire. Leave the PR open for a human to merge, which
+          # also gives the release notes a review before they go public.
+          PR_URL=$(gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json url --jq .url)
+          echo "::notice::Opened beta metadata PR: ${PR_URL}"
 
       - name: Cleanup Keychain
         if: always()
