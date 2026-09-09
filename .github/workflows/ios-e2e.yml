@@ -8,16 +8,6 @@ on:
         required: true
         type: string
         default: main
-      os_version:
-        description: iOS version to test on. Leave empty to use the newest installed runtime.
-        required: false
-        type: string
-        default: ''
-      device:
-        description: Device name filter, e.g. "iPhone" or "iPad". Leave empty for the first available iPhone.
-        required: false
-        type: string
-        default: ''
       only_testing:
         description: Optional -only-testing filter, e.g. Tests_iOS/HamE2ECourseFlows
         required: false
@@ -163,45 +153,36 @@ jobs:
           ./pod_install.sh
 
       - name: Prepare simulator
-        # Dispatch inputs are free-form strings. Read them from the step
-        # environment instead of interpolating them into the Python and shell
-        # source below, so a crafted value cannot escape as executable code.
-        env:
-          INPUT_OS_VERSION: ${{ inputs.os_version }}
-          INPUT_DEVICE: ${{ inputs.device }}
         run: |
           set -euo pipefail
 
           # Runner images rotate the devices and runtimes they ship, and a
           # hardcoded device name breaks as soon as one disappears. Resolve the
-          # destination from what this image actually has instead.
+          # newest available runtime and the first iPhone from what this image
+          # actually provides. The E2E suite does not depend on a specific
+          # device or OS: it launches with a pinned en_US locale and skips any
+          # screen it cannot reach, so no dispatch input is needed here.
           #
           # Vendored SDKs (TPNS, AMap) ship arm64 for the device only and their
           # simulator slice is x86_64, so the build must exclude arm64 for the
           # simulator SDK. XGExtension already encodes this in its own Debug
           # configuration.
           RUNTIME_ID=$(xcrun simctl list runtimes available -j | python3 -c '
-          import json, os, sys
-          wanted = os.environ.get("INPUT_OS_VERSION", "").strip()
+          import json, sys
           runtimes = json.load(sys.stdin)["runtimes"]
-          if wanted:
-              match = next((r for r in runtimes
-                            if r.get("isAvailable") and r.get("version") == wanted), None)
-          else:
-              match = None
-              for r in runtimes:
-                  if not r.get("isAvailable"):
-                      continue
-                  try:
-                      version = tuple(int(part) for part in r["version"].split("."))
-                  except (KeyError, ValueError):
-                      continue
-                  if match is None or version > match[0]:
-                      match = (version, r)
-              match = match[1] if match else None
+          match = None
+          for runtime in runtimes:
+              if not runtime.get("isAvailable"):
+                  continue
+              try:
+                  version = tuple(int(part) for part in runtime["version"].split("."))
+              except (KeyError, ValueError):
+                  continue
+              if match is None or version > match[0]:
+                  match = (version, runtime)
           if match is None:
-              sys.exit("No matching iOS runtime found")
-          print(match["identifier"], match["version"])
+              sys.exit("No available iOS runtime found")
+          print(match[1]["identifier"], match[1]["version"])
           ')
 
           RUNTIME=$(echo "$RUNTIME_ID" | cut -d' ' -f1)
@@ -209,15 +190,11 @@ jobs:
           echo "Runtime: $RUNTIME (iOS $OS_VERSION)"
 
           DEVICE=$(xcrun simctl list devicetypes -j | python3 -c '
-          import json, os, sys
-          filter_text = os.environ.get("INPUT_DEVICE", "").strip().lower()
+          import json, sys
           types = json.load(sys.stdin)["devicetypes"]
-          if filter_text:
-              candidates = [t for t in types if filter_text in t["name"].lower()]
-          else:
-              candidates = [t for t in types if "iPhone" in t["name"]]
+          candidates = [t for t in types if "iphone" in t["name"].lower()]
           if not candidates:
-              sys.exit("No matching device type found")
+              sys.exit("No iPhone device type found")
           print(candidates[0]["name"])
           ')
           echo "Device: $DEVICE"

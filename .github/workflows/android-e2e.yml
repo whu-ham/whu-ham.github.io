@@ -31,23 +31,17 @@ concurrency:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    # Google publishes the Android emulator for Linux as x86_64 only, so an
+    # arm64-v8a system image on ubuntu-latest has no native emulator and falls
+    # back to software emulation. The macOS runners are Apple Silicon, and the
+    # emulator ships a darwin_aarch64 build there, so the ARM image runs
+    # accelerated. Trade-off: 3 cores / 7 GB instead of Linux's 4 / 16.
+    runs-on: macos-15
     timeout-minutes: 240
     permissions:
       contents: read
 
     steps:
-      - name: Free runner disk space
-        run: |
-          # Hosted runners ship a large preinstalled toolchain that an Android
-          # build never touches. Removing it leaves room for the SDK, the
-          # emulator image, and the Gradle build output.
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY/CodeQL" 2>/dev/null || true
-          sudo swapoff -a 2>/dev/null || true
-          sudo rm -f /mnt/swapfile 2>/dev/null || true
-          df -h /
-
       - name: Checkout Android repository
         uses: actions/checkout@v5
         with:
@@ -93,6 +87,8 @@ jobs:
       # workers, which does not fit on a hosted runner that also has to run the
       # emulator. A Gradle user-home gradle.properties takes precedence over the
       # project one, so this tunes the build without touching the checkout.
+      # The macOS runner has 7 GB total and the AVD below reserves 3 GB of it,
+      # so the heap stays well under that.
       - name: Tune Gradle for hosted runners
         run: |
           set -euo pipefail
@@ -101,7 +97,7 @@ jobs:
           org.gradle.daemon=false
           org.gradle.parallel=false
           org.gradle.workers.max=2
-          org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
           GRADLE
 
       - name: Setup Gradle
@@ -129,18 +125,13 @@ jobs:
         with:
           api-level: ${{ inputs.api_level }}
           target: google_apis
-          # Run the emulator on the host's own instruction set so KVM can
-          # accelerate it. An arm64-v8a image on this x86-64 runner would fall
-          # back to software emulation and exhaust the boot timeout.
-          #
-          # The GithubDebug APK ships both ABIs: the Github flavor pins
-          # ndk.abiFilters to arm64-v8a, but the debug build type widens it to
-          # arm64-v8a + x86_64, and AGP merges abiFilters from flavors and
-          # build types as a union rather than overriding.
-          arch: x86_64
+          # The macos-15 runner is Apple Silicon, so the arm64-v8a image the
+          # GithubDebug APK ships runs natively instead of being translated.
+          arch: arm64-v8a
           profile: pixel_6
+          # The macOS runner has 3 cores; leave one for the host and Gradle.
           cores: 2
-          ram-size: 4096M
+          ram-size: 3072M
           heap-size: 512M
           disable-animations: true
           emulator-boot-timeout: 1800
