@@ -42,6 +42,17 @@ jobs:
       contents: read
 
     steps:
+      - name: Enable KVM group perms
+        run: |
+          # The emulator action probes /dev/kvm and silently falls back to
+          # `-accel off` when the runner user cannot open it. Software-emulated
+          # x86_64 then never finishes booting inside the timeout. Granting
+          # group access here is the setup the action's README requires for
+          # hardware acceleration on Linux runners.
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Free runner disk space
         run: |
           # Hosted runners ship a large preinstalled toolchain that an Android
