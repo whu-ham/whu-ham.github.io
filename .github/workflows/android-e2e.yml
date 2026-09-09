@@ -161,23 +161,24 @@ jobs:
           # the wait well below the job timeout and let the step fail fast.
           emulator-boot-timeout: 600
           working-directory: android
-          # The action runs this via `sh -c`, not bash, so bash-only shell
-          # options are illegal here. `set -o pipefail` fails the step with
-          # "set: Illegal option -o pipefail" before Gradle ever starts.
-          script: |
-            set -eu
-            chmod +x ./gradlew
-            TASKS=":app:connectedGithubDebugAndroidTest"
+          # Keep this a single logical line. script-parser.ts splits the value
+          # on newlines and runs each line as its own `sh -c`, so variables do
+          # not survive across lines, multi-line `if`/`fi` blocks fail to
+          # parse, and `#` comment lines are dropped. `sh` is dash on Ubuntu,
+          # so `set -o pipefail` is illegal here too.
+          script: >-
+            chmod +x ./gradlew &&
+            TASKS=":app:connectedGithubDebugAndroidTest" &&
             if [ "${{ inputs.scope }}" = "all" ]; then
-              TASKS="$TASKS :feature:schedule:connectedDebugAndroidTest"
-              TASKS="$TASKS :feature:my:connectedDebugAndroidTest"
-              TASKS="$TASKS :feature:sport:connectedDebugAndroidTest"
-              TASKS="$TASKS :feature:score:connectedDebugAndroidTest"
-              TASKS="$TASKS :feature:print:connectedDebugAndroidTest"
-              TASKS="$TASKS :feature:coursescore:connectedDebugAndroidTest"
-            fi
-            echo "Running: $TASKS"
-            # shellcheck disable=SC2086
+            TASKS="$TASKS
+            :feature:schedule:connectedDebugAndroidTest
+            :feature:my:connectedDebugAndroidTest
+            :feature:sport:connectedDebugAndroidTest
+            :feature:score:connectedDebugAndroidTest
+            :feature:print:connectedDebugAndroidTest
+            :feature:coursescore:connectedDebugAndroidTest";
+            fi &&
+            echo "Running: $TASKS" &&
             ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false $TASKS
 
       - name: Upload test reports
