@@ -13,8 +13,11 @@ jobs:
     runs-on: macos-latest
     permissions:
       # Write is required to push the version bump and the beta metadata back
-      # to this repository.
+      # to this repository, to open the beta metadata pull request, and to
+      # apply its label.
       contents: write
+      pull-requests: write
+      issues: write
     outputs:
       version_name: ${{ steps.build.outputs.version_name }}
       version_code: ${{ steps.build.outputs.version_code }}
@@ -295,7 +298,7 @@ jobs:
 
           # Checkout the docs site on a scratch path so the build workspace stays clean.
           DOCS_DIR="$RUNNER_TEMP/ham-docs"
-          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$DOCS_DIR"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$DOCS_DIR"
 
           mkdir -p "$DOCS_DIR/docs/src/public"
 
@@ -314,12 +317,57 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/src/public/ios-beta.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(ios): publish beta ${VERSION_NAME} (${VERSION_CODE})"
-            git push origin HEAD:main
-          else
-            echo "Beta info unchanged, nothing to commit."
+          if git diff --cached --quiet; then
+            echo "Beta info unchanged, nothing to publish."
+            exit 0
           fi
+
+          # main is protected: changes must arrive through a pull request and
+          # pass the required eslint check. Push a branch and open a PR.
+          BRANCH="chore/ios-beta-${VERSION_NAME}-${VERSION_CODE}"
+          PR_TITLE="chore(ios): publish beta ${VERSION_NAME} (${VERSION_CODE})"
+          LABEL="ios-release"
+
+          git checkout -b "$BRANCH"
+          git commit -m "$PR_TITLE"
+          git push origin "HEAD:${BRANCH}"
+
+          # Create the label if it is missing. It may already exist, and the
+          # token may not be allowed to create it, so never fail on either.
+          gh label create "$LABEL" \
+            --repo "$GITHUB_REPOSITORY" \
+            --color "0E8A16" \
+            --description "Automated iOS TestFlight release metadata" || true
+
+          # Build the body in a file: the notes are user input and may contain
+          # quotes, backticks or backslashes.
+          BODY_FILE="$RUNNER_TEMP/beta-pr-body.md"
+          {
+            echo "Automated beta metadata for iOS ${VERSION_NAME} (${VERSION_CODE})."
+            echo
+            echo "Published by the iOS release workflow (run ${GITHUB_RUN_ID}). The version"
+            echo "was already uploaded to TestFlight, so this only refreshes"
+            echo "\`docs/src/public/ios-beta.json\` on the download page."
+          } > "$BODY_FILE"
+
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title "$PR_TITLE" \
+            --label "$LABEL" \
+            --body-file "$BODY_FILE" || {
+            echo "::error::Failed to open the beta metadata pull request"
+            exit 1
+          }
+
+          # The ruleset requires a green eslint check and approves zero
+          # reviewers, so the PR can merge itself once that check passes.
+          gh pr merge "$BRANCH" \
+            --repo "$GITHUB_REPOSITORY" \
+            --squash \
+            --auto ||
+            echo "::warning::Could not enable auto-merge; merge the beta metadata PR manually."
 
       - name: Cleanup Keychain
         if: always()
