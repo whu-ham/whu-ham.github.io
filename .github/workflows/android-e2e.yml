@@ -1,0 +1,171 @@
+name: Android Manual E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Android branch to test
+        required: true
+        type: string
+        default: main
+      scope:
+        description: Which instrumentation test targets to run
+        required: true
+        type: choice
+        options:
+          - app
+          - all
+        default: app
+      api_level:
+        description: Emulator Android API level
+        required: true
+        type: choice
+        options:
+          - '35'
+          - '36'
+        default: '35'
+
+concurrency:
+  group: android-e2e-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    # Google publishes the Android emulator for Linux as x86_64 only, so an
+    # arm64-v8a system image on ubuntu-latest has no native emulator and falls
+    # back to software emulation. The macOS runners are Apple Silicon, and the
+    # emulator ships a darwin_aarch64 build there, so the ARM image runs
+    # accelerated. Trade-off: 3 cores / 7 GB instead of Linux's 4 / 16.
+    runs-on: macos-15
+    timeout-minutes: 240
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Android repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-android
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Configure private proto repository access
+        env:
+          PROTO_REPO_TOKEN: ${{ secrets.PROTO_REPO_TOKEN }}
+        run: |
+          if [ -z "$PROTO_REPO_TOKEN" ]; then
+            echo "::error::PROTO_REPO_TOKEN is required to clone whu-ham/ham-proto"
+            exit 1
+          fi
+          PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
+          git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/".insteadOf "https://github.com/whu-ham/"
+          echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.6.4
+          run_install: false
+          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # The checked-in gradle.properties asks for a 10 GB heap and 16 parallel
+      # workers, which does not fit on a hosted runner that also has to run the
+      # emulator. A Gradle user-home gradle.properties takes precedence over the
+      # project one, so this tunes the build without touching the checkout.
+      # The macOS runner has 7 GB total and the AVD below reserves 3 GB of it,
+      # so the heap stays well under that.
+      - name: Tune Gradle for hosted runners
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle"
+          cat >> "$HOME/.gradle/gradle.properties" <<'GRADLE'
+          org.gradle.daemon=false
+          org.gradle.parallel=false
+          org.gradle.workers.max=2
+          org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
+          GRADLE
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-cleanup: true
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+            platform-tools \
+            platforms\;android-36 \
+            build-tools\;36.0.0 \
+            ndk\;27.0.12077973 \
+            cmake\;3.22.1
+          echo "ANDROID_USER_HOME=$RUNNER_TEMP/android-user-home" >> "$GITHUB_ENV"
+
+      - name: Run instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.api_level }}
+          target: google_apis
+          # The macos-15 runner is Apple Silicon, so the arm64-v8a image the
+          # GithubDebug APK ships runs natively instead of being translated.
+          arch: arm64-v8a
+          profile: pixel_6
+          # The macOS runner has 3 cores; leave one for the host and Gradle.
+          cores: 2
+          ram-size: 3072M
+          heap-size: 512M
+          disable-animations: true
+          emulator-boot-timeout: 1800
+          working-directory: android
+          script: |
+            set -euo pipefail
+            chmod +x ./gradlew
+            TASKS=":app:connectedGithubDebugAndroidTest"
+            if [ "${{ inputs.scope }}" = "all" ]; then
+              TASKS="$TASKS :feature:schedule:connectedDebugAndroidTest"
+              TASKS="$TASKS :feature:my:connectedDebugAndroidTest"
+              TASKS="$TASKS :feature:sport:connectedDebugAndroidTest"
+              TASKS="$TASKS :feature:score:connectedDebugAndroidTest"
+              TASKS="$TASKS :feature:print:connectedDebugAndroidTest"
+              TASKS="$TASKS :feature:coursescore:connectedDebugAndroidTest"
+            fi
+            echo "Running: $TASKS"
+            # shellcheck disable=SC2086
+            ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false $TASKS
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-e2e-reports
+          path: |
+            android/**/build/reports/androidTests/**
+            android/**/build/outputs/androidTest-results/**
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Cleanup private proto repository access
+        if: always()
+        run: |
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi

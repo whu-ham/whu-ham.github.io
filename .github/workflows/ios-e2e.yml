@@ -1,0 +1,275 @@
+name: iOS Manual E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: iOS branch to test
+        required: true
+        type: string
+        default: main
+      only_testing:
+        description: Optional -only-testing filter, e.g. Tests_iOS/HamE2ECourseFlows
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: ios-e2e-${{ inputs.branch }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: macos-15
+    timeout-minutes: 180
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout iOS repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-ios
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Configure private proto repository access
+        env:
+          PROTO_REPO_TOKEN: ${{ secrets.PROTO_REPO_TOKEN }}
+        run: |
+          if [ -z "$PROTO_REPO_TOKEN" ]; then
+            echo "::error::PROTO_REPO_TOKEN is required to clone whu-ham/ham-proto"
+            exit 1
+          fi
+          PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
+          git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/ham-proto.git".insteadOf "https://github.com/whu-ham/ham-proto.git"
+          echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
+
+      - name: Show Xcode and available simulators
+        run: |
+          # The other iOS workflows build with the runner's default Xcode, so
+          # this step only records the toolchain rather than overriding it.
+          xcodebuild -version
+          xcrun simctl list runtimes
+
+      - name: Install protobuf
+        run: |
+          # The Podfile's post_install hook shells out to `protoc` to generate
+          # the HamProtobuf Swift sources, and the binary is not preinstalled
+          # on GitHub-hosted macOS runners.
+          brew install protobuf
+          protoc --version
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.6.4
+          # pod_install.sh runs `pnpm install` before applying the glog patch.
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache CocoaPods downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-e2e-${{ hashFiles('Ham/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-e2e-
+
+      - name: Cache SwiftPM artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm/artifacts
+            ~/Library/Caches/org.swift.swiftpm/repositories
+          key: ${{ runner.os }}-swiftpm-e2e-${{ hashFiles('Ham/Ham.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'Component/HamProtobuf/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftpm-e2e-
+
+      - name: Install CocoaPods
+        run: |
+          # Pin the version recorded in Ham/Podfile.lock; a newer CocoaPods
+          # rewrites every checksum in that file.
+          COCOAPODS_VERSION=$(awk -F': *' '/^COCOAPODS:/{print $2; exit}' Ham/Podfile.lock)
+          if [ -z "$COCOAPODS_VERSION" ]; then
+            echo "::error::Could not read the COCOAPODS version from Ham/Podfile.lock"
+            exit 1
+          fi
+          if gem list -i cocoapods --version "$COCOAPODS_VERSION" >/dev/null; then
+            echo "CocoaPods $COCOAPODS_VERSION already installed"
+          else
+            gem install cocoapods --version "$COCOAPODS_VERSION" --no-document
+          fi
+
+      - name: Pre-resolve Xcode workspace Swift packages
+        run: |
+          # xcodebuild resolves the workspace's Swift packages itself, and on
+          # macOS runners that hangs indefinitely:
+          #   https://github.com/actions/runner-images/issues/13175
+          # The SwiftPM CLI resolves the same graph reliably and writes to the
+          # shared cache xcodebuild reads.
+          RESOLVED="Ham/Ham.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          WARM_DIR="$RUNNER_TEMP/swiftpm-warm"
+          mkdir -p "$WARM_DIR"
+          python3 - "$RESOLVED" "$WARM_DIR/Package.swift" <<'PY'
+          import json, sys
+          resolved_path, out_path = sys.argv[1], sys.argv[2]
+          with open(resolved_path) as handle:
+              pins = json.load(handle).get("pins", [])
+          if not pins:
+              sys.exit("No pins found in %s" % resolved_path)
+          lines = [
+              "// swift-tools-version: 5.9",
+              "import PackageDescription",
+              "",
+              "let package = Package(",
+              '    name: "SwiftPMWarmCache",',
+              "    products: [],",
+              "    dependencies: [",
+          ]
+          for index, pin in enumerate(sorted(pins, key=lambda p: p["identity"])):
+              version = pin.get("state", {}).get("version")
+              if not version:
+                  continue
+              comma = "," if index < len(pins) - 1 else ""
+              lines.append('        .package(url: "%s", exact: "%s")%s'
+                           % (pin["location"], version, comma))
+          lines += ["    ],", "    targets: []", ")"]
+          with open(out_path, "w") as handle:
+              handle.write("\n".join(lines) + "\n")
+          print("Wrote %s with %d dependencies" % (out_path, len(pins)))
+          PY
+          cd "$WARM_DIR"
+          env SWIFTPM_MAX_CONCURRENT_OPERATIONS=1 swift package resolve
+
+      - name: CocoaPods Install
+        run: |
+          # The project's own script also applies the glog configure patch that
+          # `pnpm install` alone does not.
+          ./pod_install.sh
+
+      - name: Prepare simulator
+        run: |
+          set -euo pipefail
+
+          # Runner images rotate the devices and runtimes they ship, and a
+          # hardcoded device name breaks as soon as one disappears. Resolve the
+          # newest available runtime and the first iPhone from what this image
+          # actually provides. The E2E suite does not depend on a specific
+          # device or OS: it launches with a pinned en_US locale and skips any
+          # screen it cannot reach, so no dispatch input is needed here.
+          #
+          # Vendored SDKs (TPNS, AMap) ship arm64 for the device only and their
+          # simulator slice is x86_64, so the build must exclude arm64 for the
+          # simulator SDK. XGExtension already encodes this in its own Debug
+          # configuration.
+          RUNTIME_ID=$(xcrun simctl list runtimes available -j | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["runtimes"]
+          match = None
+          for runtime in runtimes:
+              if not runtime.get("isAvailable"):
+                  continue
+              try:
+                  version = tuple(int(part) for part in runtime["version"].split("."))
+              except (KeyError, ValueError):
+                  continue
+              if match is None or version > match[0]:
+                  match = (version, runtime)
+          if match is None:
+              sys.exit("No available iOS runtime found")
+          print(match[1]["identifier"], match[1]["version"])
+          ')
+
+          RUNTIME=$(echo "$RUNTIME_ID" | cut -d' ' -f1)
+          OS_VERSION=$(echo "$RUNTIME_ID" | cut -d' ' -f2)
+          echo "Runtime: $RUNTIME (iOS $OS_VERSION)"
+
+          DEVICE=$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          types = json.load(sys.stdin)["devicetypes"]
+          candidates = [t for t in types if "iphone" in t["name"].lower()]
+          if not candidates:
+              sys.exit("No iPhone device type found")
+          print(candidates[0]["name"])
+          ')
+          echo "Device: $DEVICE"
+
+          NAME="Ham E2E ${DEVICE} ${OS_VERSION}"
+          # simctl create wants identifiers; a missing device is the normal case
+          # on a fresh runner image.
+          if ! xcrun simctl list devices available | grep -qF "$NAME"; then
+            xcrun simctl create "$NAME" "$DEVICE" "$RUNTIME"
+          fi
+
+          echo "DEVICE_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "OS_VERSION=$OS_VERSION" >> "$GITHUB_ENV"
+          echo "SIM_DESTINATION=platform=iOS Simulator,name=$NAME,OS=$OS_VERSION" >> "$GITHUB_ENV"
+          xcrun simctl list devices available | grep -F "$NAME"
+
+      - name: Run E2E tests
+        timeout-minutes: 150
+        env:
+          NSUnbufferedIO: YES
+          # `only_testing` is a free-form dispatch input. Reading it from the
+          # environment keeps a crafted value from being parsed as shell code.
+          INPUT_ONLY_TESTING: ${{ inputs.only_testing }}
+        run: |
+          set -euo pipefail
+          cd Ham
+          ONLY_TESTING="$INPUT_ONLY_TESTING"
+          TEST_ARGS=()
+          if [ -n "$ONLY_TESTING" ]; then
+            TEST_ARGS=(-only-testing:"$ONLY_TESTING")
+          fi
+          # pipefail keeps the pipeline's exit status so a failing test suite
+          # fails the job instead of being masked by tee.
+          set -o pipefail
+          xcodebuild \
+            -workspace Ham.xcworkspace \
+            -scheme "Tests iOS" \
+            -configuration Debug \
+            -destination "$SIM_DESTINATION" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -resultBundlePath "$RUNNER_TEMP/e2e.xcresult" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            ONLY_ACTIVE_ARCH=YES \
+            'EXCLUDED_ARCHS[sdk=iphonesimulator*]=arm64' \
+            "${TEST_ARGS[@]}" \
+            test | tee "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Summarize test results
+        if: always()
+        run: |
+          set -uo pipefail
+          LOG="$RUNNER_TEMP/xcodebuild.log"
+          if [ ! -f "$LOG" ]; then
+            echo "No xcodebuild log found."
+            exit 0
+          fi
+          {
+            echo "### iOS E2E results"
+            echo
+            grep -E "Test Suite '|Executed [0-9]+ tests?" "$LOG" | tail -40
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-e2e-results
+          path: ${{ runner.temp }}/e2e.xcresult
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Cleanup proto git config
+        if: always()
+        run: |
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi
