@@ -31,17 +31,28 @@ concurrency:
 
 jobs:
   e2e:
-    # Google publishes the Android emulator for Linux as x86_64 only, so an
-    # arm64-v8a system image on ubuntu-latest has no native emulator and falls
-    # back to software emulation. The macOS runners are Apple Silicon, and the
-    # emulator ships a darwin_aarch64 build there, so the ARM image runs
-    # accelerated. Trade-off: 3 cores / 7 GB instead of Linux's 4 / 16.
-    runs-on: macos-15
+    # Google publishes the Android emulator for Linux as x86_64 only, and the
+    # Linux runners expose KVM, so the x86_64 system image boots accelerated.
+    # The emulator also ships a darwin_aarch64 build, but hosted macOS runners
+    # deny nested virtualization: the ARM emulator dies immediately with
+    # "HVF error: HV_UNSUPPORTED" and the AVD never comes online.
+    runs-on: ubuntu-latest
     timeout-minutes: 240
     permissions:
       contents: read
 
     steps:
+      - name: Free runner disk space
+        run: |
+          # Hosted runners ship a large preinstalled toolchain that an Android
+          # build never touches. Removing it leaves room for the SDK, the
+          # emulator image, and the Gradle build output.
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY/CodeQL" 2>/dev/null || true
+          sudo swapoff -a 2>/dev/null || true
+          sudo rm -f /mnt/swapfile 2>/dev/null || true
+          df -h /
+
       - name: Checkout Android repository
         uses: actions/checkout@v5
         with:
@@ -87,7 +98,7 @@ jobs:
       # workers, which does not fit on a hosted runner that also has to run the
       # emulator. A Gradle user-home gradle.properties takes precedence over the
       # project one, so this tunes the build without touching the checkout.
-      # The macOS runner has 7 GB total and the AVD below reserves 3 GB of it,
+      # The Linux runner has 16 GB total and the AVD below reserves 4 GB of it,
       # so the heap stays well under that.
       - name: Tune Gradle for hosted runners
         run: |
@@ -97,7 +108,7 @@ jobs:
           org.gradle.daemon=false
           org.gradle.parallel=false
           org.gradle.workers.max=2
-          org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
           GRADLE
 
       - name: Setup Gradle
@@ -125,16 +136,19 @@ jobs:
         with:
           api-level: ${{ inputs.api_level }}
           target: google_apis
-          # The macos-15 runner is Apple Silicon, so the arm64-v8a image the
-          # GithubDebug APK ships runs natively instead of being translated.
-          arch: arm64-v8a
+          # GithubDebug keeps both arm64-v8a and x86_64: the Github flavor pins
+          # arm64-v8a and the debug build type adds x86_64, and AGP merges
+          # abiFilters as a union. The x86_64 slice is what this emulator runs.
+          arch: x86_64
           profile: pixel_6
-          # The macOS runner has 3 cores; leave one for the host and Gradle.
+          # The Linux runner has 4 cores; leave two for the host and Gradle.
           cores: 2
-          ram-size: 3072M
+          ram-size: 4096M
           heap-size: 512M
           disable-animations: true
-          emulator-boot-timeout: 1800
+          # A boot failure leaves adb polling against a dead emulator, so cap
+          # the wait well below the job timeout and let the step fail fast.
+          emulator-boot-timeout: 600
           working-directory: android
           script: |
             set -euo pipefail
