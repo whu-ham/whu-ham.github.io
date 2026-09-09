@@ -163,6 +163,12 @@ jobs:
           ./pod_install.sh
 
       - name: Prepare simulator
+        # Dispatch inputs are free-form strings. Read them from the step
+        # environment instead of interpolating them into the Python and shell
+        # source below, so a crafted value cannot escape as executable code.
+        env:
+          INPUT_OS_VERSION: ${{ inputs.os_version }}
+          INPUT_DEVICE: ${{ inputs.device }}
         run: |
           set -euo pipefail
 
@@ -175,8 +181,8 @@ jobs:
           # simulator SDK. XGExtension already encodes this in its own Debug
           # configuration.
           RUNTIME_ID=$(xcrun simctl list runtimes available -j | python3 -c '
-          import json, sys
-          wanted = "${{ inputs.os_version }}".strip()
+          import json, os, sys
+          wanted = os.environ.get("INPUT_OS_VERSION", "").strip()
           runtimes = json.load(sys.stdin)["runtimes"]
           if wanted:
               match = next((r for r in runtimes
@@ -203,8 +209,8 @@ jobs:
           echo "Runtime: $RUNTIME (iOS $OS_VERSION)"
 
           DEVICE=$(xcrun simctl list devicetypes -j | python3 -c '
-          import json, sys
-          filter_text = "${{ inputs.device }}".strip().lower()
+          import json, os, sys
+          filter_text = os.environ.get("INPUT_DEVICE", "").strip().lower()
           types = json.load(sys.stdin)["devicetypes"]
           if filter_text:
               candidates = [t for t in types if filter_text in t["name"].lower()]
@@ -232,10 +238,13 @@ jobs:
         timeout-minutes: 150
         env:
           NSUnbufferedIO: YES
+          # `only_testing` is a free-form dispatch input. Reading it from the
+          # environment keeps a crafted value from being parsed as shell code.
+          INPUT_ONLY_TESTING: ${{ inputs.only_testing }}
         run: |
           set -euo pipefail
           cd Ham
-          ONLY_TESTING="${{ inputs.only_testing }}"
+          ONLY_TESTING="$INPUT_ONLY_TESTING"
           TEST_ARGS=()
           if [ -n "$ONLY_TESTING" ]; then
             TEST_ARGS=(-only-testing:"$ONLY_TESTING")

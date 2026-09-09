@@ -129,9 +129,15 @@ jobs:
         with:
           api-level: ${{ inputs.api_level }}
           target: google_apis
-          # Match the app's ABI: the Github flavor pins ndk.abiFilters to
-          # arm64-v8a, so the test APK is built and installed as arm64-v8a.
-          arch: arm64-v8a
+          # Run the emulator on the host's own instruction set so KVM can
+          # accelerate it. An arm64-v8a image on this x86-64 runner would fall
+          # back to software emulation and exhaust the boot timeout.
+          #
+          # The GithubDebug APK ships both ABIs: the Github flavor pins
+          # ndk.abiFilters to arm64-v8a, but the debug build type widens it to
+          # arm64-v8a + x86_64, and AGP merges abiFilters from flavors and
+          # build types as a union rather than overriding.
+          arch: x86_64
           profile: pixel_6
           cores: 2
           ram-size: 4096M
