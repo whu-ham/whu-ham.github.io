@@ -229,6 +229,14 @@ jobs:
           # pipefail keeps the pipeline's exit status so a failing test suite
           # fails the job instead of being masked by tee.
           set -o pipefail
+          # Pass EXCLUDED_ARCHS in the plain `SETTING=value` form. The
+          # SDK-conditional spelling `EXCLUDED_ARCHS[sdk=iphonesimulator*]`
+          # does not survive the command line: xcodebuild splits on the first
+          # `=` and records it as `EXCLUDED_ARCHS = iphonesimulator*]=arm64`,
+          # so the exclusion silently never applies and the device-only arm64
+          # slice of the vendored XGExtension archive breaks the simulator
+          # link. This build targets the simulator only, so the unconditional
+          # setting is equivalent here and actually takes effect.
           xcodebuild \
             -workspace Ham.xcworkspace \
             -scheme "Tests iOS" \
@@ -239,7 +247,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             ONLY_ACTIVE_ARCH=YES \
-            'EXCLUDED_ARCHS[sdk=iphonesimulator*]=arm64' \
+            EXCLUDED_ARCHS=arm64 \
             ${TEST_ARGS[@]+"${TEST_ARGS[@]}"} \
             test | tee "$RUNNER_TEMP/xcodebuild.log"
 
