@@ -58,10 +58,16 @@ jobs:
           # Hosted runners ship a large preinstalled toolchain that an Android
           # build never touches. Removing it leaves room for the SDK, the
           # emulator image, and the Gradle build output.
+          #
+          # Keep swap enabled. Disabling it here used to be cargo-culted in
+          # from the usual disk-space snippets, but this job is memory-bound
+          # rather than disk-bound: the emulator reserves 3G and Gradle peaks
+          # well above its heap while running CMake, KSP and Dex. With swap
+          # off, memory pressure is resolved by the kernel OOM killer, which
+          # tears down the whole runner mid-build. With swap on, the same
+          # pressure degrades to paging instead.
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
           sudo rm -rf "$AGENT_TOOLSDIRECTORY/CodeQL" 2>/dev/null || true
-          sudo swapoff -a 2>/dev/null || true
-          sudo rm -f /mnt/swapfile 2>/dev/null || true
           df -h /
 
       - name: Checkout Android repository
@@ -109,8 +115,11 @@ jobs:
       # workers, which does not fit on a hosted runner that also has to run the
       # emulator. A Gradle user-home gradle.properties takes precedence over the
       # project one, so this tunes the build without touching the checkout.
-      # The Linux runner has 16 GB total and the AVD below reserves 4 GB of it,
-      # so the heap stays well under that.
+      #
+      # The Linux runner has 16 GB total. The AVD below reserves 3 GB, and the
+      # build's real peaks come from parallel CMake/Clang, KSP and Dex workers
+      # rather than from the Gradle heap alone, so cap the heap at 3 GB and cap
+      # worker count to keep the combined ceiling well under the machine.
       - name: Tune Gradle for hosted runners
         run: |
           set -euo pipefail
@@ -119,7 +128,7 @@ jobs:
           org.gradle.daemon=false
           org.gradle.parallel=false
           org.gradle.workers.max=2
-          org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8
+          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
           GRADLE
 
       - name: Setup Gradle
@@ -154,7 +163,9 @@ jobs:
           profile: pixel_6
           # The Linux runner has 4 cores; leave two for the host and Gradle.
           cores: 2
-          ram-size: 4096M
+          # 3 GB rather than 4: the emulator and the Gradle build have to fit
+          # in 16 GB together, and the build's own peak is what pushes it over.
+          ram-size: 3072M
           heap-size: 512M
           disable-animations: true
           # A boot failure leaves adb polling against a dead emulator, so cap
