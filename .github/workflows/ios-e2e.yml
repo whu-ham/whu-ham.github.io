@@ -53,6 +53,20 @@ jobs:
           xcodebuild -version
           xcrun simctl list runtimes
 
+      - name: Install fastlane
+        run: |
+          # The E2E suite runs through `fastlane ios e2e` in ham-ios, so the
+          # lane's own defaults decide how it is invoked.
+          #
+          # Installed with brew rather than Bundler, for the same reason the
+          # release workflow does it: `brew install ruby` upgrades the runner's
+          # Ruby 3.4 to 4.0, but /opt/homebrew/lib/ruby/gems/3.4.0/bin/bundle
+          # shadows the new one, so `bundle install` and `bundle exec fastlane`
+          # look in different gem directories and the latter fails with
+          # "Could not find fastlane-... in locally installed gems".
+          brew install fastlane
+          fastlane --version
+
       - name: Install protobuf
         run: |
           # The Podfile's post_install hook shells out to `protoc` to generate
@@ -208,7 +222,10 @@ jobs:
 
           echo "DEVICE_NAME=$NAME" >> "$GITHUB_ENV"
           echo "OS_VERSION=$OS_VERSION" >> "$GITHUB_ENV"
-          echo "SIM_DESTINATION=platform=iOS Simulator,name=$NAME,OS=$OS_VERSION" >> "$GITHUB_ENV"
+          # No destination string is built here any more. The lane resolves
+          # `device` to one itself, as `platform=iOS Simulator,id=<udid>` —
+          # by UDID rather than by name, which is what keeps two simulators
+          # sharing a name from being ambiguous.
           xcrun simctl list devices available | grep -F "$NAME"
 
       - name: Run E2E tests
@@ -216,54 +233,68 @@ jobs:
         env:
           NSUnbufferedIO: YES
           # `only_testing` is a free-form dispatch input. Reading it from the
-          # environment keeps a crafted value from being parsed as shell code.
+          # environment keeps a crafted value from being parsed as shell code,
+          # and passing it as a fastlane argument keeps it off the shell
+          # entirely — fastlane hands it to xcodebuild as an argv element.
+          #
+          # The lane validates it against TestTarget[/TestSuite[/TestCase]] and
+          # fails the job on anything else, so a typo cannot silently run the
+          # whole suite and report green.
           INPUT_ONLY_TESTING: ${{ inputs.only_testing }}
         run: |
           set -euo pipefail
-          cd Ham
-          ONLY_TESTING="$INPUT_ONLY_TESTING"
-          TEST_ARGS=()
-          if [ -n "$ONLY_TESTING" ]; then
-            TEST_ARGS+=(-only-testing:"$ONLY_TESTING")
+          # Everything about how the suite is invoked now lives in the lane:
+          # scheme, Debug configuration, the simulator-only build settings and
+          # the result bundle are properties of ham-ios, and keeping them here
+          # meant editing two repositories in lockstep with nothing to catch
+          # the case where only one was updated.
+          #
+          # `device` is the simulator this job created above. fastlane resolves
+          # it to a `platform=iOS Simulator,id=<udid>` destination, so a name
+          # that no longer exists on a rotated runner image falls back to the
+          # default simulator with a warning rather than failing the job.
+          #
+          # The optional argument is built as a string, not an array: this
+          # runner ships bash 3.2, where `"${ARGS[@]}"` on an empty array
+          # aborts under `set -u` with "ARGS[@]: unbound variable". A full
+          # suite run leaves `only_testing` empty, so that is not an edge
+          # case — it is the default path.
+          if [ -n "$INPUT_ONLY_TESTING" ]; then
+            EXTRA_ARG="only_testing:$INPUT_ONLY_TESTING"
+          else
+            EXTRA_ARG=""
           fi
-          # pipefail keeps the pipeline's exit status so a failing test suite
-          # fails the job instead of being masked by tee.
-          set -o pipefail
-          # Pass EXCLUDED_ARCHS in the plain `SETTING=value` form. The
-          # SDK-conditional spelling `EXCLUDED_ARCHS[sdk=iphonesimulator*]`
-          # does not survive the command line: xcodebuild splits on the first
-          # `=` and records it as `EXCLUDED_ARCHS = iphonesimulator*]=arm64`,
-          # so the exclusion silently never applies and the device-only arm64
-          # slice of the vendored XGExtension archive breaks the simulator
-          # link. This build targets the simulator only, so the unconditional
-          # setting is equivalent here and actually takes effect.
-          xcodebuild \
-            -workspace Ham.xcworkspace \
-            -scheme "Tests iOS" \
-            -configuration Debug \
-            -destination "$SIM_DESTINATION" \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            -resultBundlePath "$RUNNER_TEMP/e2e.xcresult" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            ONLY_ACTIVE_ARCH=YES \
-            EXCLUDED_ARCHS=arm64 \
-            ${TEST_ARGS[@]+"${TEST_ARGS[@]}"} \
-            test | tee "$RUNNER_TEMP/xcodebuild.log"
+          # Unquoted on purpose, so an empty value expands to nothing rather
+          # than to an empty argument. The value is already a single word:
+          # fastlane rejects anything that is not a test identifier, and the
+          # dispatch input arrives through the environment, never the shell.
+          fastlane ios e2e device:"$DEVICE_NAME" ${EXTRA_ARG:+"$EXTRA_ARG"}
 
       - name: Summarize test results
         if: always()
         run: |
-          set -uo pipefail
-          LOG="$RUNNER_TEMP/xcodebuild.log"
-          if [ ! -f "$LOG" ]; then
-            echo "No xcodebuild log found."
+          # The lane writes the JUnit report and the result bundle into
+          # `fastlane/test_output` in ham-ios's working tree, which is where
+          # this job checks the repository out.
+          REPORT="fastlane/test_output/report.junit"
+          if [ ! -f "$REPORT" ]; then
+            echo "No test report found at $REPORT."
             exit 0
           fi
           {
             echo "### iOS E2E results"
             echo
-            grep -E "Test Suite '|Executed [0-9]+ tests?" "$LOG" | tail -40
+            # One line per suite: name, test count, failure count.
+            python3 - "$REPORT" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse(sys.argv[1]).getroot()
+          for suite in root.iter("testsuite"):
+              print("- `%s`: %s tests, %s failures, %s skipped" % (
+                  suite.get("name") or "(unnamed)",
+                  suite.get("tests") or 0,
+                  suite.get("failures") or 0,
+                  suite.get("skipped") or 0))
+          PY
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test results
@@ -271,7 +302,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-e2e-results
-          path: ${{ runner.temp }}/e2e.xcresult
+          # Written by the lane into ham-ios's tree, not by xcodebuild into
+          # $RUNNER_TEMP.
+          path: |
+            fastlane/test_output/report.junit
+            fastlane/test_output/Tests iOS.xcresult
           retention-days: 7
           if-no-files-found: warn
 
