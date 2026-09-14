@@ -6,19 +6,10 @@ const {href, text} = defineProps<{
   href: string;
   text: string;
 }>();
-
-const onLinkClick = () => {
-  window.open(href, '_blank');
-};
 </script>
 
 <template>
-  <a
-    class="link"
-    @href="href"
-    target="_blank"
-    rel="noopener noreferrer"
-    @click="onLinkClick">
+  <a class="link" :href="href" target="_blank" rel="noopener noreferrer">
     {{ text }}
     <svg
       class="external-link-icon icon"

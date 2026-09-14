@@ -294,7 +294,7 @@ jobs:
           set -euo pipefail
           # Keep in sync with the fallback invite in
           # docs/page/download/component/IOSDownloadPanel.vue.
-          TESTFLIGHT_URL="itms-beta://testflight.apple.com/join/waKNnCG3"
+          TESTFLIGHT_URL="https://testflight.apple.com/join/waKNnCG3"
 
           # Checkout the docs site on a scratch path so the build workspace stays clean.
           DOCS_DIR="$RUNNER_TEMP/ham-docs"

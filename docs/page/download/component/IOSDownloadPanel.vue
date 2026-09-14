@@ -50,7 +50,7 @@ onMounted(async () => {
           </p>
         </NoticeView>
         <ArrowLink
-          href="itms-beta://testflight.apple.com/join/waKNnCG3"
+          href="https://testflight.apple.com/join/waKNnCG3"
           :text="t('joinTestflight')" />
       </div>
     </div>

@@ -33,6 +33,11 @@ const versionLabel = (item: IOSBetaInfo) =>
 </template>
 
 <style scoped lang="scss">
+.caption {
+  // Keep the publish date on its own line so the TestFlight link below wraps.
+  display: block;
+}
+
 .title {
   &-text {
     margin-top: 0;
