@@ -8,14 +8,6 @@ on:
         required: true
         type: string
         default: main
-      scope:
-        description: Which instrumentation test targets to run
-        required: true
-        type: choice
-        options:
-          - app
-          - all
-        default: app
       api_level:
         description: Emulator Android API level
         required: true
@@ -234,15 +226,6 @@ jobs:
           script: >-
             chmod +x ./gradlew &&
             bundle exec fastlane android e2e
-        # The dispatch input reaches the lane through the environment rather than as an
-        # inline ${{ }} substitution. Interpolating it cannot be made safe by quoting:
-        # GitHub expands the expression into the shell source *before* the shell parses
-        # it, so a `scope` value containing a double quote terminates the string and
-        # injects whatever follows as a command. This step runs with GIT_CONFIG_GLOBAL
-        # pointing at a file holding PROTO_REPO_TOKEN, so injected commands could read
-        # that token. Reading from the environment keeps the value data rather than code.
-        env:
-          E2E_SCOPE: ${{ inputs.scope }}
 
       # A batch that OOMs is reported by Gradle as "Process crashed", which fails
       # this job already. What that report does *not* say is how many cases never
