@@ -205,7 +205,8 @@ jobs:
           # with "Could not load test results".
           script: >-
             chmod +x ./gradlew &&
-            SHARDS="${{ inputs.shards }}" &&
+            SHARDS="$E2E_SHARDS" &&
+            SCOPE="$E2E_SCOPE" &&
             case "$SHARDS" in
             ''|*[!0-9]*) echo "::error::shards must be a positive integer, got '$SHARDS'"; exit 1;;
             esac &&
@@ -224,7 +225,7 @@ jobs:
             cp -a app/build/outputs/androidTest-results/. app/build/outputs/e2e-shards/$I/;
             I=$((I+1));
             done;
-            if [ "${{ inputs.scope }}" = "all" ]; then
+            if [ "$SCOPE" = "all" ]; then
             ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false
             :feature:schedule:connectedDebugAndroidTest
             :feature:my:connectedDebugAndroidTest
@@ -235,6 +236,18 @@ jobs:
             fi;
             echo "SHARD_FAILURES=$FAILED";
             [ "$FAILED" -eq 0 ]
+        # The dispatch inputs reach the script through the environment rather than
+        # as inline ${{ }} substitutions. Interpolating them cannot be made safe by
+        # quoting: GitHub expands the expression into the shell source *before* the
+        # shell parses it, so a `shards` value containing a double quote terminates
+        # the string and injects whatever follows as a command — while still
+        # passing the numeric check inside the script. This step runs with
+        # GIT_CONFIG_GLOBAL pointing at a file holding PROTO_REPO_TOKEN, so
+        # injected commands could read that token. Reading from the environment
+        # keeps the value data rather than code.
+        env:
+          E2E_SHARDS: ${{ inputs.shards }}
+          E2E_SCOPE: ${{ inputs.scope }}
 
       # A shard that OOMs is reported by Gradle as "Process crashed", which fails
       # this job already. What that report does *not* say is how many cases never
