@@ -24,6 +24,11 @@ on:
           - '35'
           - '36'
         default: '35'
+      shards:
+        description: 'How many separate processes to split the :app suite across (raise it if the run still dies of OOM)'
+        required: true
+        type: string
+        default: '12'
 
 concurrency:
   group: android-e2e-${{ inputs.branch }}
@@ -177,20 +182,109 @@ jobs:
           # not survive across lines, multi-line `if`/`fi` blocks fail to
           # parse, and `#` comment lines are dropped. `sh` is dash on Ubuntu,
           # so `set -o pipefail` is illegal here too.
+          #
+          # The :app suite runs as $SHARDS separate Gradle invocations. It has
+          # to: instrumentation reuses one process for the whole run, and the
+          # app retains roughly 1.4 MB of Java heap (plus ~9 MB of native
+          # memory) per case, so a single invocation of all ~394 cases exhausts
+          # the 192 MB cap partway through and the run is reported as
+          # "Process crashed" with the remaining cases never executed. A shard
+          # is its own invocation and therefore its own process, so the
+          # retained set starts over each time.
+          #
+          # Failures are collected rather than failing fast, so one bad shard
+          # does not hide the results of the other eleven, and each shard's
+          # XML is copied aside before the next invocation wipes the results
+          # directory.
+          #
+          # The results directory is cleared before every shard. Two reasons,
+          # both load-bearing: AGP does not clear it itself, so without this
+          # shard N's copy also contains every earlier shard's XML and each
+          # shard appears to have run the tests of all the shards before it;
+          # and a stale result file makes Gradle fail the *next* invocation
+          # with "Could not load test results".
           script: >-
             chmod +x ./gradlew &&
-            TASKS=":app:connectedGithubDebugAndroidTest" &&
+            SHARDS="${{ inputs.shards }}" &&
+            case "$SHARDS" in
+            ''|*[!0-9]*) echo "::error::shards must be a positive integer, got '$SHARDS'"; exit 1;;
+            esac &&
+            if [ "$SHARDS" -lt 1 ]; then echo "::error::shards must be at least 1, got '$SHARDS'"; exit 1; fi &&
+            FAILED=0 &&
+            I=0 &&
+            while [ "$I" -lt "$SHARDS" ]; do
+            echo "=== :app shard $((I+1)) of $SHARDS ===";
+            rm -rf app/build/outputs/androidTest-results;
+            mkdir -p app/build/outputs/androidTest-results;
+            ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false
+            -Pandroid.testInstrumentationRunnerArguments.numShards=$SHARDS
+            -Pandroid.testInstrumentationRunnerArguments.shardIndex=$I
+            :app:connectedGithubDebugAndroidTest || FAILED=1;
+            mkdir -p app/build/outputs/e2e-shards/$I;
+            cp -a app/build/outputs/androidTest-results/. app/build/outputs/e2e-shards/$I/;
+            I=$((I+1));
+            done;
             if [ "${{ inputs.scope }}" = "all" ]; then
-            TASKS="$TASKS
+            ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false
             :feature:schedule:connectedDebugAndroidTest
             :feature:my:connectedDebugAndroidTest
             :feature:sport:connectedDebugAndroidTest
             :feature:score:connectedDebugAndroidTest
             :feature:print:connectedDebugAndroidTest
-            :feature:coursescore:connectedDebugAndroidTest";
-            fi &&
-            echo "Running: $TASKS" &&
-            ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false $TASKS
+            :feature:coursescore:connectedDebugAndroidTest || FAILED=1;
+            fi;
+            echo "SHARD_FAILURES=$FAILED";
+            [ "$FAILED" -eq 0 ]
+
+      # A shard that OOMs is reported by Gradle as "Process crashed", which fails
+      # this job already. What that report does *not* say is how many cases never
+      # ran, so an aborted run looks like a run with one failure. Summing the
+      # per-shard XMLs is what turns "shard 7 crashed" into "N of M cases ran".
+      - name: Summarise E2E shard results
+        if: always()
+        working-directory: android
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET, sys
+
+          # Per-shard XMLs are the source of truth. The live results directory is
+          # only consulted when no shard was collected at all, because after the
+          # loop it still holds the *last* shard's XML — counting it as well
+          # double-counts that shard and inflates the total.
+          files = sorted(glob.glob("app/build/outputs/e2e-shards/*/**/*.xml", recursive=True))
+          if not files:
+              files = sorted(glob.glob("app/build/outputs/androidTest-results/**/*.xml", recursive=True))
+              print("::warning::No per-shard results found; falling back to the live results directory")
+
+          total = failures = errors = 0
+          shards = {}
+          for path in files:
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              if root.tag not in ("testsuite", "testsuites"):
+                  continue
+              for suite in ([root] if root.tag == "testsuite" else root.iter("testsuite")):
+                  total += int(suite.get("tests", 0) or 0)
+                  failures += int(suite.get("failures", 0) or 0)
+                  errors += int(suite.get("errors", 0) or 0)
+              shard = path.split("e2e-shards/")[1].split("/")[0] if "e2e-shards/" in path else "final"
+              shards[shard] = shards.get(shard, 0) + int(root.get("tests", 0) or 0)
+
+          print(f"E2E cases executed: {total}, failures: {failures}, errors: {errors}")
+          for shard in sorted(shards, key=lambda s: (s == "final", s)):
+              print(f"  shard {shard}: {shards[shard]} cases")
+          if total == 0:
+              print("::error::No E2E results were collected at all")
+              sys.exit(1)
+          short = [s for s, n in shards.items() if s != "final" and n == 0]
+          if short:
+              print(f"::error::These shards reported zero cases: {', '.join(sorted(short))}")
+              sys.exit(1)
+          print(f"::warning::Expected ~394 :app cases; if this total is far below it, a shard aborted early")
+          PY
 
       - name: Upload test reports
         if: always()
@@ -200,6 +294,7 @@ jobs:
           path: |
             android/**/build/reports/androidTests/**
             android/**/build/outputs/androidTest-results/**
+            android/**/build/outputs/e2e-shards/**
           retention-days: 7
           if-no-files-found: warn
 
