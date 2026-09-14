@@ -24,11 +24,6 @@ on:
           - '35'
           - '36'
         default: '35'
-      shards:
-        description: 'How many separate processes to split the :app suite across (raise it if the run still dies of OOM)'
-        required: true
-        type: string
-        default: '12'
 
 concurrency:
   group: android-e2e-${{ inputs.branch }}
@@ -136,6 +131,38 @@ jobs:
           org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
           GRADLE
 
+      - name: Setup Ruby
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The E2E suite is driven through fastlane: it has to run the instrumentation
+          # in several batches of test classes rather than one invocation, and doing that
+          # with a shell loop inside the emulator action's `script` is not possible —
+          # script-parser.ts splits the value on newlines and runs each line as its own
+          # `sh -c`, so no variable survives across lines and any `if`/`for` block fails
+          # to parse. A lane keeps the loop in Ruby, where it belongs.
+          if ! command -v ruby >/dev/null 2>&1; then
+            echo "::error::Ruby is missing; the E2E lane cannot run"
+            exit 1
+          fi
+          if ! command -v make >/dev/null 2>&1; then
+            echo "::error::make is missing and this runner cannot install build tools"
+            exit 1
+          fi
+          ruby --version
+          ruby -e 'abort("Ruby 3.1 or newer is required") if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1")'
+          echo "GEM_HOME=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "GEM_PATH=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/gems/bin" >> "$GITHUB_PATH"
+          export GEM_HOME="$RUNNER_TEMP/gems"
+          export GEM_PATH="$GEM_HOME"
+          export PATH="$GEM_HOME/bin:$PATH"
+          BUNDLER_VERSION=$(awk '/^BUNDLED WITH$/{getline; gsub(/^ +/, ""); print}' Gemfile.lock)
+          gem install bundler --version "$BUNDLER_VERSION" --no-document
+          bundle config set --local path "$RUNNER_TEMP/bundle"
+          bundle install --jobs 4 --retry 3
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -171,7 +198,12 @@ jobs:
           # 3 GB rather than 4: the emulator and the Gradle build have to fit
           # in 16 GB together, and the build's own peak is what pushes it over.
           ram-size: 3072M
-          heap-size: 512M
+          # No heap-size: the action writes it to `vm.heapSize` in the AVD's
+          # config.ini, which the emulator ignores. An AVD set here to 512M
+          # reports dalvik.vm.heapsize=576m and heapgrowthlimit=192m — neither
+          # is the value passed — so the setting only ever looked like it took
+          # effect. The 192 MB growth limit comes from the system image and is
+          # what the E2E batches are sized against.
           disable-animations: true
           # A boot failure leaves adb polling against a dead emulator, so cap
           # the wait well below the job timeout and let the step fail fast.
@@ -183,77 +215,40 @@ jobs:
           # parse, and `#` comment lines are dropped. `sh` is dash on Ubuntu,
           # so `set -o pipefail` is illegal here too.
           #
-          # The :app suite runs as $SHARDS separate Gradle invocations. It has
-          # to: instrumentation reuses one process for the whole run, and the
-          # app retains roughly 1.4 MB of Java heap (plus ~9 MB of native
-          # memory) per case, so a single invocation of all ~394 cases exhausts
-          # the 192 MB cap partway through and the run is reported as
-          # "Process crashed" with the remaining cases never executed. A shard
-          # is its own invocation and therefore its own process, so the
-          # retained set starts over each time.
+          # The :app suite is driven by the `e2e` lane rather than by a shell loop here.
           #
-          # Failures are collected rather than failing fast, so one bad shard
-          # does not hide the results of the other eleven, and each shard's
-          # XML is copied aside before the next invocation wipes the results
-          # directory.
+          # Instrumentation reuses one process for a whole invocation and the app retains
+          # memory per case, so all ~394 cases in one invocation exhausts the 192 MB cap
+          # and the run dies partway through — the last one reported `Finished 139 tests`,
+          # leaving 255 cases unrun. Splitting into batches of test classes gives each
+          # batch its own process, so the retained set starts over.
           #
-          # The results directory is cleared before every shard. Two reasons,
-          # both load-bearing: AGP does not clear it itself, so without this
-          # shard N's copy also contains every earlier shard's XML and each
-          # shard appears to have run the tests of all the shards before it;
-          # and a stale result file makes Gradle fail the *next* invocation
-          # with "Could not load test results".
+          # The loop cannot live here: script-parser.ts splits this value on newlines and
+          # runs each line as its own `sh -c`, so no variable survives across lines and
+          # any `if`/`for` block fails to parse. The lane holds the loop in Ruby.
+          #
+          # The batching is done with an explicit per-invocation class list, not with
+          # AGP's numShards/shardIndex: those are dropped before they reach
+          # AndroidJUnitRunner, so every shard ran the entire suite instead of its slice.
+          # That is why a sharded run still died at the same case as an unsharded one.
           script: >-
             chmod +x ./gradlew &&
-            SHARDS="$E2E_SHARDS" &&
-            SCOPE="$E2E_SCOPE" &&
-            case "$SHARDS" in
-            ''|*[!0-9]*) echo "::error::shards must be a positive integer, got '$SHARDS'"; exit 1;;
-            esac &&
-            if [ "$SHARDS" -lt 1 ]; then echo "::error::shards must be at least 1, got '$SHARDS'"; exit 1; fi &&
-            FAILED=0 &&
-            I=0 &&
-            while [ "$I" -lt "$SHARDS" ]; do
-            echo "=== :app shard $((I+1)) of $SHARDS ===";
-            rm -rf app/build/outputs/androidTest-results;
-            mkdir -p app/build/outputs/androidTest-results;
-            ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false
-            -Pandroid.testInstrumentationRunnerArguments.numShards=$SHARDS
-            -Pandroid.testInstrumentationRunnerArguments.shardIndex=$I
-            :app:connectedGithubDebugAndroidTest || FAILED=1;
-            mkdir -p app/build/outputs/e2e-shards/$I;
-            cp -a app/build/outputs/androidTest-results/. app/build/outputs/e2e-shards/$I/;
-            I=$((I+1));
-            done;
-            if [ "$SCOPE" = "all" ]; then
-            ./gradlew --no-daemon -Pandroid.builder.sdkDownload=false
-            :feature:schedule:connectedDebugAndroidTest
-            :feature:my:connectedDebugAndroidTest
-            :feature:sport:connectedDebugAndroidTest
-            :feature:score:connectedDebugAndroidTest
-            :feature:print:connectedDebugAndroidTest
-            :feature:coursescore:connectedDebugAndroidTest || FAILED=1;
-            fi;
-            echo "SHARD_FAILURES=$FAILED";
-            [ "$FAILED" -eq 0 ]
-        # The dispatch inputs reach the script through the environment rather than
-        # as inline ${{ }} substitutions. Interpolating them cannot be made safe by
-        # quoting: GitHub expands the expression into the shell source *before* the
-        # shell parses it, so a `shards` value containing a double quote terminates
-        # the string and injects whatever follows as a command — while still
-        # passing the numeric check inside the script. This step runs with
-        # GIT_CONFIG_GLOBAL pointing at a file holding PROTO_REPO_TOKEN, so
-        # injected commands could read that token. Reading from the environment
-        # keeps the value data rather than code.
+            bundle exec fastlane android e2e
+        # The dispatch input reaches the lane through the environment rather than as an
+        # inline ${{ }} substitution. Interpolating it cannot be made safe by quoting:
+        # GitHub expands the expression into the shell source *before* the shell parses
+        # it, so a `scope` value containing a double quote terminates the string and
+        # injects whatever follows as a command. This step runs with GIT_CONFIG_GLOBAL
+        # pointing at a file holding PROTO_REPO_TOKEN, so injected commands could read
+        # that token. Reading from the environment keeps the value data rather than code.
         env:
-          E2E_SHARDS: ${{ inputs.shards }}
           E2E_SCOPE: ${{ inputs.scope }}
 
-      # A shard that OOMs is reported by Gradle as "Process crashed", which fails
+      # A batch that OOMs is reported by Gradle as "Process crashed", which fails
       # this job already. What that report does *not* say is how many cases never
       # ran, so an aborted run looks like a run with one failure. Summing the
-      # per-shard XMLs is what turns "shard 7 crashed" into "N of M cases ran".
-      - name: Summarise E2E shard results
+      # per-batch XMLs is what turns "batch 7 crashed" into "N of M cases ran".
+      - name: Summarise E2E batch results
         if: always()
         working-directory: android
         run: |
@@ -261,17 +256,16 @@ jobs:
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET, sys
 
-          # Per-shard XMLs are the source of truth. The live results directory is
-          # only consulted when no shard was collected at all, because after the
-          # loop it still holds the *last* shard's XML — counting it as well
-          # double-counts that shard and inflates the total.
-          files = sorted(glob.glob("app/build/outputs/e2e-shards/*/**/*.xml", recursive=True))
+          # Per-batch XMLs are the source of truth. The lane moves each batch's
+          # results out of the live results directory as soon as it finishes,
+          # because the next invocation overwrites that path.
+          files = sorted(glob.glob("build/e2e-batches/batch-*/*/**/*.xml", recursive=True))
           if not files:
               files = sorted(glob.glob("app/build/outputs/androidTest-results/**/*.xml", recursive=True))
-              print("::warning::No per-shard results found; falling back to the live results directory")
+              print("::warning::No per-batch results found; falling back to the live results directory")
 
           total = failures = errors = 0
-          shards = {}
+          batches = {}
           for path in files:
               try:
                   root = ET.parse(path).getroot()
@@ -283,20 +277,20 @@ jobs:
                   total += int(suite.get("tests", 0) or 0)
                   failures += int(suite.get("failures", 0) or 0)
                   errors += int(suite.get("errors", 0) or 0)
-              shard = path.split("e2e-shards/")[1].split("/")[0] if "e2e-shards/" in path else "final"
-              shards[shard] = shards.get(shard, 0) + int(root.get("tests", 0) or 0)
+              batch = path.split("e2e-batches/")[1].split("/")[0] if "e2e-batches/" in path else "final"
+              batches[batch] = batches.get(batch, 0) + int(root.get("tests", 0) or 0)
 
           print(f"E2E cases executed: {total}, failures: {failures}, errors: {errors}")
-          for shard in sorted(shards, key=lambda s: (s == "final", s)):
-              print(f"  shard {shard}: {shards[shard]} cases")
+          for batch in sorted(batches, key=lambda s: (s == "final", s)):
+              print(f"  {batch}: {batches[batch]} cases")
           if total == 0:
               print("::error::No E2E results were collected at all")
               sys.exit(1)
-          short = [s for s, n in shards.items() if s != "final" and n == 0]
+          short = [s for s, n in batches.items() if s != "final" and n == 0]
           if short:
-              print(f"::error::These shards reported zero cases: {', '.join(sorted(short))}")
+              print(f"::error::These batches reported zero cases: {', '.join(sorted(short))}")
               sys.exit(1)
-          print(f"::warning::Expected ~394 :app cases; if this total is far below it, a shard aborted early")
+          print(f"::warning::Expected ~394 :app cases; if this total is far below it, a batch aborted early")
           PY
 
       - name: Upload test reports
@@ -307,7 +301,7 @@ jobs:
           path: |
             android/**/build/reports/androidTests/**
             android/**/build/outputs/androidTest-results/**
-            android/**/build/outputs/e2e-shards/**
+            android/**/build/e2e-batches/**
           retention-days: 7
           if-no-files-found: warn
 
