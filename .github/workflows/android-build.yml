@@ -71,8 +71,16 @@ jobs:
           cache-read-only: false
           gradle-home-cache-cleanup: true
 
+      # `packages` is set explicitly to drop `tools` from the action's default of
+      # "tools platform-tools". Google removed the `tools` package from the SDK, and a
+      # current `sdkmanager` exits 1 on it ("Failed to find package 'tools'") rather than
+      # warning, which fails this step and skips the rest of the build. `platform-tools`
+      # is listed so the action still installs something; Gradle resolves build-tools,
+      # platforms and NDK on demand through the Android Gradle Plugin.
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Restore keystore
         shell: bash
