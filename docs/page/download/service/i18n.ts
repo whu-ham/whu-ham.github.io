@@ -91,5 +91,7 @@ export const useDownloadI18n = () => {
   const {lang} = useData();
   const localeKey = computed(() => resolveLocaleKey(lang.value));
   const t = (key: MessageKey) => messages[localeKey.value][key];
-  return {t};
+  // Exposed so non-string translations, such as relative dates, can follow
+  // the same language instead of assuming the default one.
+  return {t, localeKey};
 };
