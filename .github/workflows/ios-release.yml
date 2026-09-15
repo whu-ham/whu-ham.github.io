@@ -270,15 +270,28 @@ jobs:
           VERSION_CODE: ${{ steps.build.outputs.version_code }}
           TAG: ${{ steps.build.outputs.tag }}
           COMMIT_SHA: ${{ steps.bump.outputs.commit_sha }}
+          DISTRIBUTION: ${{ github.event.client_payload.distribution }}
+          RELEASE_NOTES: ${{ github.event.client_payload.release_notes }}
         run: |
           # Use curl because the gh CLI is not guaranteed to exist on self-hosted macOS runners.
-          curl --fail-with-body -sS -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${HAM_IOS_DISPATCH_TOKEN}" \
-            "https://api.github.com/repos/whu-ham/ham-ios/dispatches" \
-            --data-binary @- <<JSON
-          {"event_type":"ios-release-completed","client_payload":{"request_id":"${REQUEST_ID}","source_ref":"${SOURCE_REF}","version_name":"${VERSION_NAME}","version_code":"${VERSION_CODE}","tag":"${TAG}","commit_sha":"${COMMIT_SHA}"}}
-          JSON
+          # Build the payload with jq so user-supplied release notes stay valid JSON:
+          # interpolating them into a heredoc would break on quotes or newlines.
+          jq -n \
+            --arg request_id "$REQUEST_ID" \
+            --arg source_ref "$SOURCE_REF" \
+            --arg version_name "$VERSION_NAME" \
+            --arg version_code "$VERSION_CODE" \
+            --arg tag "$TAG" \
+            --arg commit_sha "$COMMIT_SHA" \
+            --arg distribution "$DISTRIBUTION" \
+            --arg release_notes "$RELEASE_NOTES" \
+            '{event_type:"ios-release-completed",client_payload:{request_id:$request_id,source_ref:$source_ref,version_name:$version_name,version_code:$version_code,tag:$tag,commit_sha:$commit_sha,distribution:$distribution,release_notes:$release_notes}}' \
+            | curl --fail-with-body -sS -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${HAM_IOS_DISPATCH_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/whu-ham/ham-ios/dispatches" \
+              --data-binary @-
 
       - name: Publish beta info to the docs site
         # Internal builds go to the internal TestFlight group only. The docs
