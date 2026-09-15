@@ -5,6 +5,7 @@ type LocaleKey = 'zh' | 'en' | 'ja';
 type MessageKey =
   | 'requestFailedTitle'
   | 'goToGithubRelease'
+  | 'loading'
   | 'publishedOn'
   | 'appStore'
   | 'testflight'
@@ -22,6 +23,7 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
   zh: {
     requestFailedTitle: '请求失败',
     goToGithubRelease: '前往 Github Release',
+    loading: '正在加载最新版本…',
     publishedOn: '发布于',
     appStore: 'App Store',
     testflight: 'TestFlight',
@@ -38,6 +40,7 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
   en: {
     requestFailedTitle: 'Request failed',
     goToGithubRelease: 'Go to GitHub Release',
+    loading: 'Loading the latest release…',
     publishedOn: 'Published on',
     appStore: 'App Store',
     testflight: 'TestFlight',
@@ -55,6 +58,7 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
   ja: {
     requestFailedTitle: '取得に失敗しました',
     goToGithubRelease: 'GitHub Releaseへ',
+    loading: '最新バージョンを読み込んでいます…',
     publishedOn: '公開日',
     appStore: 'App Store',
     testflight: 'TestFlight',

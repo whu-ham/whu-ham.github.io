@@ -42,6 +42,11 @@ onMounted(async () => {
       <AndroidReleaseItem :item="releaseItem" class="release-item" />
     </div>
   </div>
+  <div v-else-if="loadState === LoadState.LOADING">
+    <div class="tip custom-block">
+      <p>{{ t('loading') }}</p>
+    </div>
+  </div>
   <div v-else-if="loadState === LoadState.FAIL">
     <div class="danger custom-block">
       <p class="custom-block-title">{{ t('requestFailedTitle') }}</p>
