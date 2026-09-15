@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import {computed} from 'vue';
 import {formatDate} from '../service/date';
 import PreReleaseTag from './PreReleaseTag.vue';
 import NoticeView from './NoticeView.vue';
@@ -15,7 +16,13 @@ const props = defineProps<{
   notes?: string;
   prerelease?: boolean;
 }>();
-const {t} = useDownloadI18n();
+const {t, localeKey} = useDownloadI18n();
+
+// Reads as a computed so switching language re-renders the date instead of
+// leaving the previous language's string on screen.
+const publishedAtText = computed(() =>
+  formatDate(props.publishedAt, localeKey.value),
+);
 </script>
 
 <template>
@@ -24,9 +31,7 @@ const {t} = useDownloadI18n();
       <h3 class="title-text">{{ props.title }}</h3>
       <PreReleaseTag v-if="props.prerelease" class="title-tag" />
     </div>
-    <span class="caption"
-      >{{ t('publishedOn') }} {{ formatDate(props.publishedAt) }}</span
-    >
+    <span class="caption">{{ t('publishedOn') }} {{ publishedAtText }}</span>
 
     <blockquote v-if="props.notes">
       <div v-html="props.notes.replace(/\n/g, '<br>')"></div>
