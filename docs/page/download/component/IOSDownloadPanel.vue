@@ -21,8 +21,16 @@ const betaInfo = ref<IOSBetaInfo | null>(null);
 const {t} = useDownloadI18n();
 
 onMounted(async () => {
-  versionInfo.value = await getLatestIOSVersionInfo();
-  betaInfo.value = await getLatestIOSBetaInfo();
+  // The App Store lookup and the beta metadata file are independent, so they
+  // run together: awaited in sequence, a slow lookup held back the TestFlight
+  // section behind it for no reason. Each one absorbs its own failure so the
+  // other half of the page still renders.
+  const [versionResult, betaResult] = await Promise.all([
+    getLatestIOSVersionInfo().catch(() => undefined),
+    getLatestIOSBetaInfo().catch(() => null),
+  ]);
+  versionInfo.value = versionResult;
+  betaInfo.value = betaResult;
 });
 </script>
 
