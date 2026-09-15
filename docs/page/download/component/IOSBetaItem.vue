@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import {IOSBetaInfo} from '../service/ios_beta_fetch';
-import ArrowLink from '../../../components/ArrowLink.vue';
-import {formatDate} from '../service/date';
-import PreReleaseTag from './PreReleaseTag.vue';
 import {useDownloadI18n} from '../service/i18n';
+import ReleaseItem from './ReleaseItem.vue';
+import DownloadLinkRow from './DownloadLinkRow.vue';
 
 const {item} = defineProps<{
   item: IOSBetaInfo;
@@ -15,45 +14,11 @@ const versionLabel = (item: IOSBetaInfo) =>
 </script>
 
 <template>
-  <div>
-    <div class="title-container">
-      <h3 class="title-text">{{ versionLabel(item) }}</h3>
-      <PreReleaseTag class="title-tag" />
-    </div>
-    <span class="caption"
-      >{{ t('publishedOn') }} {{ formatDate(item.publishedAt) }}</span
-    >
-
-    <blockquote v-if="item.releaseNotes">
-      <div v-html="item.releaseNotes.replace(/\n/g, '<br>')"></div>
-    </blockquote>
-
-    <ArrowLink :href="item.testflightUrl" :text="t('downloadOnTestflight')" />
-  </div>
+  <ReleaseItem
+    :title="versionLabel(item)"
+    :published-at="item.publishedAt"
+    :notes="item.releaseNotes"
+    prerelease>
+    <DownloadLinkRow :label="t('testflight')" :href="item.testflightUrl" />
+  </ReleaseItem>
 </template>
-
-<style scoped lang="scss">
-.caption {
-  // Keep the publish date on its own line so the TestFlight link below wraps.
-  display: block;
-}
-
-.title {
-  &-text {
-    margin-top: 0;
-    display: inline-block;
-  }
-
-  &-container {
-    display: flex;
-    align-content: center;
-    margin-top: 8px;
-    margin-bottom: 8px;
-  }
-
-  &-tag {
-    margin-left: 12px;
-    display: block;
-  }
-}
-</style>

@@ -24,6 +24,25 @@ const nav: DefaultTheme.NavItem[] = [
 ];
 
 const sideBar: DefaultTheme.Sidebar = {
+  // The download page is a single page with one section per platform, so its
+  // sidebar entries are anchors into that page rather than separate routes.
+  '/download/': [
+    {
+      text: '下载',
+      collapsed: false,
+      items: [
+        {
+          text: 'Android',
+          link: '/download/#android',
+        },
+        {
+          text: 'iOS',
+          link: '/download/#ios',
+        },
+      ],
+    },
+  ],
+
   '/guide/': [
     {
       text: '使用手册',

@@ -6,7 +6,8 @@ type MessageKey =
   | 'requestFailedTitle'
   | 'goToGithubRelease'
   | 'publishedOn'
-  | 'appStoreDownload'
+  | 'appStore'
+  | 'testflight'
   | 'betaTitle'
   | 'noticeTitle'
   | 'testflightPromptPrefix'
@@ -15,15 +16,15 @@ type MessageKey =
   | 'downloadLinksTitle'
   | 'downloadsSuffix'
   | 'download'
-  | 'preRelease'
-  | 'downloadOnTestflight';
+  | 'preRelease';
 
 const messages: Record<LocaleKey, Record<MessageKey, string>> = {
   zh: {
     requestFailedTitle: '请求失败',
     goToGithubRelease: '前往 Github Release',
     publishedOn: '发布于',
-    appStoreDownload: '前往 App Store 下载正式版',
+    appStore: 'App Store',
+    testflight: 'TestFlight',
     betaTitle: '测试版',
     noticeTitle: '提示',
     testflightPromptPrefix: '下载测试版前，请确保你的设备已安装',
@@ -33,13 +34,13 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
     downloadsSuffix: '次下载',
     download: '下载',
     preRelease: '预发布',
-    downloadOnTestflight: '通过 TestFlight 下载',
   },
   en: {
     requestFailedTitle: 'Request failed',
     goToGithubRelease: 'Go to GitHub Release',
     publishedOn: 'Published on',
-    appStoreDownload: 'Download on the App Store',
+    appStore: 'App Store',
+    testflight: 'TestFlight',
     betaTitle: 'Beta',
     noticeTitle: 'Notice',
     testflightPromptPrefix:
@@ -50,13 +51,13 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
     downloadsSuffix: ' downloads',
     download: 'Download',
     preRelease: 'Pre-release',
-    downloadOnTestflight: 'Download on TestFlight',
   },
   ja: {
     requestFailedTitle: '取得に失敗しました',
     goToGithubRelease: 'GitHub Releaseへ',
     publishedOn: '公開日',
-    appStoreDownload: 'App Storeで正式版を入手',
+    appStore: 'App Store',
+    testflight: 'TestFlight',
     betaTitle: 'テスト版',
     noticeTitle: 'お知らせ',
     testflightPromptPrefix: 'テスト版をダウンロードする前に、端末に',
@@ -66,7 +67,6 @@ const messages: Record<LocaleKey, Record<MessageKey, string>> = {
     downloadsSuffix: '回のダウンロード',
     download: 'ダウンロード',
     preRelease: 'プレリリース',
-    downloadOnTestflight: 'TestFlightでダウンロード',
   },
 };
 
