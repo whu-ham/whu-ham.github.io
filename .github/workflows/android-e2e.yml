@@ -82,14 +82,19 @@ jobs:
           # stdout before it — a versions banner, a deprecation notice — so the captured
           # value is not guaranteed to be JSON on its own. Take only the last {...} line.
           #
-          # Everything fastlane logs through `UI` goes to stderr and is dropped here; the
-          # plan is the only thing this step should read.
-          plan="$(bundle exec fastlane android e2e_batches 2>/dev/null | grep -E '^\{' | tail -n 1)"
+          # stderr goes to a file rather than to /dev/null: when the lane dies — a missing
+          # require, a bad constant — its traceback is on stderr, and discarding it here
+          # turns a one-line fix into a silent "printed no JSON" with nothing to debug.
+          bundle exec fastlane android e2e_batches 2>"$RUNNER_TEMP/e2e-lane-stderr.log" \
+            | grep -E '^\{' | tail -n 1 > "$RUNNER_TEMP/e2e-batches.json"
+          plan="$(cat "$RUNNER_TEMP/e2e-batches.json")"
           if [ -z "$plan" ]; then
             echo "::error::The e2e_batches lane printed no JSON object on stdout"
+            echo "::group::Lane stderr"
+            cat "$RUNNER_TEMP/e2e-lane-stderr.log" || true
+            echo "::endgroup::"
             exit 1
           fi
-          printf '%s\n' "$plan" > "$RUNNER_TEMP/e2e-batches.json"
           printf '%s\n' "$plan" | python3 -m json.tool
 
           # One Python call, reading the plan from a file rather than from three separate
