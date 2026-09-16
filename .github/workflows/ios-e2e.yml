@@ -19,11 +19,70 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Decides how many shards the suite needs, and which classes go in each.
+  #
+  # Both are the suite's business, not this workflow's: the count comes from
+  # how long the cases take (read from the last run's result bundle) against
+  # the budget, and the grouping from each class's measured cost. Either can
+  # change without an edit here.
+  #
+  # It needs a checkout because the lane reads the last run's `.xcresult`
+  # from the working tree, and `e2e_test_class_names` scans the sources.
+  shards:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      count: ${{ steps.count.outputs.count }}
+      shards: ${{ steps.count.outputs.shards }}
+    steps:
+      - name: Checkout iOS repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-ios
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Install fastlane
+        run: |
+          # brew rather than Bundler, for the same reason the other steps do
+          # it: `brew install ruby` upgrades the runner's Ruby, but
+          # /opt/homebrew/lib/ruby/gems/3.4.0/bin/bundle shadows the new one,
+          # so `bundle exec fastlane` cannot find its own gems.
+          brew install fastlane
+
+      - name: Report shard count
+        id: count
+        run: fastlane ios e2e_shard_count
+
   e2e:
     runs-on: macos-latest
     timeout-minutes: 180
     permissions:
       contents: read
+    # One job per shard, each on its own machine.
+    #
+    # The suite is ~325 cases at ~25 s each — ~2 h 15 m serially, which does
+    # not fit the 150-minute step budget. That is why the last full run was
+    # killed having reached 47 of 325 cases.
+    #
+    # The shards have to be separate *jobs*, not several simulators inside one
+    # job. A hosted macOS runner is 5 cores / 14 GB (VirtualMac2,1, measured),
+    # and booting three simulators on one took 295 s and drove the load average
+    # to 955 — so concurrency inside a job is not available. A matrix gives
+    # each shard a whole machine instead.
+    #
+    # The shard count and the class grouping both come from the lane, which
+    # knows what the suite costs. A `shards` job runs first and prints the
+    # number, so nothing about the suite's shape is written here.
+    needs: shards
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.shards.outputs.shards) }}
+    name: e2e (shard ${{ matrix.shard }}/${{ needs.shards.outputs.count }})
 
     steps:
       - name: Checkout iOS repository
@@ -254,21 +313,20 @@ jobs:
           # that no longer exists on a rotated runner image falls back to the
           # default simulator with a warning rather than failing the job.
           #
-          # The optional argument is built as a string, not an array: this
-          # runner ships bash 3.2, where `"${ARGS[@]}"` on an empty array
-          # aborts under `set -u` with "ARGS[@]: unbound variable". A full
-          # suite run leaves `only_testing` empty, so that is not an edge
-          # case — it is the default path.
+          # `only_testing` targets one class or case, so it runs on a single
+          # shard and ignores the split. A full run drives the shard this job
+          # was given, and the lane picks the classes that belong to it.
+          #
+          # The shard count comes from the `shards` job rather than being
+          # written here: the lane derives it from how long the cases take, so
+          # a number typed into this file would drift from the grouping the
+          # lane computes and silently leave classes unrun.
           if [ -n "$INPUT_ONLY_TESTING" ]; then
-            EXTRA_ARG="only_testing:$INPUT_ONLY_TESTING"
+            fastlane ios e2e device:"$DEVICE_NAME" only_testing:"$INPUT_ONLY_TESTING"
           else
-            EXTRA_ARG=""
+            fastlane ios e2e_shard device:"$DEVICE_NAME" \
+              shard:"${{ matrix.shard }}" shards:"${{ needs.shards.outputs.count }}"
           fi
-          # Unquoted on purpose, so an empty value expands to nothing rather
-          # than to an empty argument. The value is already a single word:
-          # fastlane rejects anything that is not a test identifier, and the
-          # dispatch input arrives through the environment, never the shell.
-          fastlane ios e2e device:"$DEVICE_NAME" ${EXTRA_ARG:+"$EXTRA_ARG"}
 
       - name: Summarize test results
         if: always()
@@ -276,7 +334,9 @@ jobs:
           # The lane writes the JUnit report and the result bundle into
           # `fastlane/test_output` in ham-ios's working tree, which is where
           # this job checks the repository out.
-          REPORT="fastlane/test_output/report.junit"
+          # Per shard, because each matrix job produces its own and they are
+          # uploaded separately.
+          REPORT="fastlane/test_output/shard-${{ matrix.shard }}/report.junit"
           if [ ! -f "$REPORT" ]; then
             echo "No test report found at $REPORT."
             exit 0
@@ -301,12 +361,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-e2e-results
+          name: ios-e2e-results-shard-${{ matrix.shard }}
           # Written by the lane into ham-ios's tree, not by xcodebuild into
           # $RUNNER_TEMP.
           path: |
-            fastlane/test_output/report.junit
-            fastlane/test_output/Tests iOS.xcresult
+            fastlane/test_output/shard-${{ matrix.shard }}/report.junit
+            fastlane/test_output/shard-${{ matrix.shard }}/Tests iOS.xcresult
           retention-days: 7
           if-no-files-found: warn
 
