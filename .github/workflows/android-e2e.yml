@@ -78,14 +78,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # The lane prints JSON on stdout; everything fastlane itself logs goes to stderr.
-          # Keep them apart or the log lines end up inside the value the matrix parses.
-          plan="$(bundle exec fastlane android e2e_batches 2>/dev/null)"
+          # The lane writes its JSON with `puts`, but bundler and fastlane also print to
+          # stdout before it — a versions banner, a deprecation notice — so the captured
+          # value is not guaranteed to be JSON on its own. Take only the last {...} line.
+          #
+          # Everything fastlane logs through `UI` goes to stderr and is dropped here; the
+          # plan is the only thing this step should read.
+          plan="$(bundle exec fastlane android e2e_batches 2>/dev/null | grep -E '^\{' | tail -n 1)"
           if [ -z "$plan" ]; then
-            echo "::error::The e2e_batches lane printed nothing"
+            echo "::error::The e2e_batches lane printed no JSON object on stdout"
             exit 1
           fi
-          printf '%s\n' "$plan" | tee "$RUNNER_TEMP/e2e-batches.json" | python3 -m json.tool
+          printf '%s\n' "$plan" > "$RUNNER_TEMP/e2e-batches.json"
+          printf '%s\n' "$plan" | python3 -m json.tool
 
           # One Python call, reading the plan from a file rather than from three separate
           # `-c` snippets. The escaped quotes an f-string needs inside `-c` are a quoting
