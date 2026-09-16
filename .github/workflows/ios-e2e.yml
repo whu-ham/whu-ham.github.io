@@ -55,7 +55,6 @@ jobs:
 
       - name: Report shard count
         id: count
-        working-directory: ios
         run: fastlane ios e2e_shard_count
 
   e2e:
@@ -93,9 +92,6 @@ jobs:
           ref: ${{ inputs.branch }}
           token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
           fetch-depth: 1
-          # Alongside the `shards` job's checkout, which stays put for the
-          # whole run. Same repo and ref, so nothing is duplicated in cost.
-          path: ios
 
       - name: Configure private proto repository access
         env:
@@ -317,19 +313,19 @@ jobs:
           # that no longer exists on a rotated runner image falls back to the
           # default simulator with a warning rather than failing the job.
           #
-          # The optional argument is built as a string, not an array: this
-          # runner ships bash 3.2, where `"${ARGS[@]}"` on an empty array
-          # aborts under `set -u` with "ARGS[@]: unbound variable". A full
-          # suite run leaves `only_testing` empty, so that is not an edge
-          # case — it is the default path.
           # `only_testing` targets one class or case, so it runs on a single
           # shard and ignores the split. A full run drives the shard this job
           # was given, and the lane picks the classes that belong to it.
+          #
+          # The shard count comes from the `shards` job rather than being
+          # written here: the lane derives it from how long the cases take, so
+          # a number typed into this file would drift from the grouping the
+          # lane computes and silently leave classes unrun.
           if [ -n "$INPUT_ONLY_TESTING" ]; then
             fastlane ios e2e device:"$DEVICE_NAME" only_testing:"$INPUT_ONLY_TESTING"
           else
             fastlane ios e2e_shard device:"$DEVICE_NAME" \
-              shard:"${{ matrix.shard }}" shards:4
+              shard:"${{ matrix.shard }}" shards:"${{ needs.shards.outputs.count }}"
           fi
 
       - name: Summarize test results
