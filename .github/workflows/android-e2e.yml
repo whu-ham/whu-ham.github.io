@@ -108,8 +108,8 @@ jobs:
           # `-c` snippets. The escaped quotes an f-string needs inside `-c` are a quoting
           # trap in YAML, and the plan is small enough that parsing it once is clearer —
           # and cheaper — than parsing it three times.
-          python3 - "$RUNNER_TEMP/e2e-batches.json" >> "$GITHUB_OUTPUT" <<'PY'
-          import json, sys
+          python3 - "$RUNNER_TEMP/e2e-batches.json" "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, os, sys
 
           with open(sys.argv[1], encoding="utf-8") as handle:
               plan = json.load(handle)
@@ -126,12 +126,22 @@ jobs:
           # `matrix` value would make each job name unreadably long, and the lane re-derives
           # the same classes from the same sources on the runner anyway.
           numbers = [batch["number"] for batch in plan["batches"]]
-          print("batches<<EOF")
-          print(json.dumps(numbers))
-          print("EOF")
-          print("count=%d" % count)
-          print("total_tests=%d" % total)
-          print("::notice::Planned %d batches covering %d tests" % (count, total))
+
+          # Only the three key/value pairs go to $GITHUB_OUTPUT. Everything else — the
+          # pretty-printed plan, the notice — goes to the step summary, because the output
+          # file is parsed strictly: a stray `::notice::` line is read as a malformed
+          # key/value pair and fails the step with "Unable to process file command".
+          with open(sys.argv[2], "a", encoding="utf-8") as summary:
+              summary.write("Planned %d batches covering %d tests\n\n" % (count, total))
+              summary.write("```json\n%s\n```\n" % json.dumps(plan, indent=2))
+
+          out = open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8")
+          out.write("batches<<EOF\n")
+          out.write(json.dumps(numbers))
+          out.write("\nEOF\n")
+          out.write("count=%d\n" % count)
+          out.write("total_tests=%d\n" % total)
+          out.close()
           PY
 
   e2e:
