@@ -4,6 +4,7 @@
  * @date 2025/1/23 13:09
  */
 import {fetchGithubReleaseList, GithubReleaseApiResponse} from './api';
+import {MAX_PRERELEASE_COUNT} from './config';
 
 interface AndroidVersionInfo {
   name: string;
@@ -20,15 +21,22 @@ interface AndroidApkInfo {
 }
 
 const getLatestAndroidVersionInfo = async () => {
-  const response = await fetchGithubReleaseList();
-  console.info(response);
-  const androidVersionInfoList = response.map(o => {
-    return mapGithubResponseToAndroidVersionInfo(o);
+  const {releases, proxyPrefix} = await fetchGithubReleaseList();
+  const androidVersionInfoList = releases.map(o => {
+    return mapGithubResponseToAndroidVersionInfo(o, proxyPrefix);
   });
 
   const resultList: AndroidVersionInfo[] = [];
+  let prereleaseCount = 0;
   for (const versionInfo of androidVersionInfoList) {
     if (versionInfo.prerelease) {
+      // The GitHub API returns releases newest-first, so the first
+      // MAX_PRERELEASE_COUNT pre-releases are the current ones. Older betas
+      // are superseded and would push the stable build further down.
+      if (prereleaseCount >= MAX_PRERELEASE_COUNT) {
+        continue;
+      }
+      prereleaseCount++;
       resultList.push(versionInfo);
     } else {
       resultList.unshift(versionInfo);
@@ -40,11 +48,14 @@ const getLatestAndroidVersionInfo = async () => {
 
 const mapGithubResponseToAndroidVersionInfo = (
   response: GithubReleaseApiResponse,
+  proxyPrefix?: string,
 ): AndroidVersionInfo => {
   const assetList: AndroidApkInfo[] = response.assets.map(asset => {
     return {
       name: asset.name,
-      downloadUrl: asset.browser_download_url,
+      downloadUrl: proxyPrefix
+        ? proxyPrefix + asset.browser_download_url
+        : asset.browser_download_url,
       downloadCount: asset.download_count,
     };
   });
