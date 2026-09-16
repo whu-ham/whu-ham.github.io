@@ -85,8 +85,11 @@ jobs:
           # stderr goes to a file rather than to /dev/null: when the lane dies — a missing
           # require, a bad constant — its traceback is on stderr, and discarding it here
           # turns a one-line fix into a silent "printed no JSON" with nothing to debug.
+          # `|| true` on the grep: this step runs under `set -o pipefail`, so a grep that
+          # matches nothing returns 1 and fails the whole pipeline before the emptiness
+          # check below can report anything. The check is the thing that should fail.
           bundle exec fastlane android e2e_batches 2>"$RUNNER_TEMP/e2e-lane-stderr.log" \
-            | grep -E '^\{' | tail -n 1 > "$RUNNER_TEMP/e2e-batches.json"
+            | grep -E '^\{' | tail -n 1 > "$RUNNER_TEMP/e2e-batches.json" || true
           plan="$(cat "$RUNNER_TEMP/e2e-batches.json")"
           if [ -z "$plan" ]; then
             echo "::error::The e2e_batches lane printed no JSON object on stdout"
