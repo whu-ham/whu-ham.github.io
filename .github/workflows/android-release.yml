@@ -392,6 +392,43 @@ jobs:
           }
           JSON
 
+      # Runs after the callback so a pruning failure cannot stop ham-android
+      # from recording the release it just published.
+      - name: Prune superseded beta releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MAX_BETA_RELEASES=5
+
+          # Every beta release carries its own APKs, so the release list is
+          # where the repository storage goes. Only the newest
+          # MAX_BETA_RELEASES betas stay: older ones are superseded, and the
+          # download page never links past a handful of them anyway.
+          #
+          # A release only counts as a beta when GitHub flags it as a
+          # prerelease *and* its tag looks like `v1.7.6-beta9`. The tag shape
+          # keeps the releases this workflow never created — the older
+          # `v1.6.3b1` style among them — out of the pruning.
+          #
+          # Sorting by createdAt rather than trusting the API order keeps the
+          # oldest betas on the chopping block whichever way GitHub returns
+          # them. The git tags are deliberately left in place: the next beta
+          # number is derived from them, and reusing a number whose release
+          # was deleted would point existing download links at a different
+          # build.
+          PRUNE_TAGS=$(gh release list --repo "$GITHUB_REPOSITORY" \
+            --limit 100 --json tagName,isPrerelease,createdAt \
+            --jq "[.[] | select(.isPrerelease and (.tagName | test(\"^v.+-beta[0-9]+$\")))] | sort_by(.createdAt) | reverse | .[$MAX_BETA_RELEASES:][].tagName")
+          if [ -z "$PRUNE_TAGS" ]; then
+            echo "At most $MAX_BETA_RELEASES beta releases present, nothing to prune."
+            exit 0
+          fi
+          printf '%s\n' "$PRUNE_TAGS" | while read -r TAG; do
+            echo "Deleting superseded beta release $TAG"
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+          done
+
       - name: Cleanup credentials
         if: always()
         run: |
