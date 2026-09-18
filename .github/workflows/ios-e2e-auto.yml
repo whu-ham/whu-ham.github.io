@@ -1,0 +1,403 @@
+name: iOS Auto E2E
+
+# The automatic half of the E2E story: the iOS release workflow calls this once
+# its build job has passed, so a version is never shipped without the suite
+# having run against it.
+#
+# There is deliberately no `workflow_dispatch`. A run of this suite only makes
+# sense as the tail of a release, and exposing the same knobs twice would let
+# the two halves drift apart. ios-e2e.yml is the manual equivalent.
+#
+# `workflow_call` rather than a dispatched event or `workflow_run`: only a
+# reusable workflow can be handed the version being verified, and it needs no
+# token to fire. A `repository_dispatch` sent with the repository's own
+# GITHUB_TOKEN never starts a run at all, so that route would have needed a PAT
+# for nothing.
+#
+# No `concurrency` group: these jobs join the calling release's run instead of
+# starting one of their own, and that run is already serialised by the release
+# workflow's own group.
+#
+# No `only_testing` input, unlike the manual workflow: an automatic run exists
+# to verify a release, so it always drives the whole suite. A filter here could
+# only ever narrow that into a run which looks green and covers less.
+on:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: iOS ref to test, e.g. the branch the release was cut from
+        required: true
+        type: string
+      version_name:
+        description: Version name being verified, e.g. 1.8.0
+        required: true
+        type: string
+      version_code:
+        description: Version code being verified, e.g. 325
+        required: true
+        type: string
+
+jobs:
+  # Decides how many shards the suite needs, and which classes go in each.
+  #
+  # Both are the suite's business, not this workflow's: the count comes from
+  # how long the cases take (read from the last run's result bundle) against
+  # the budget, and the grouping from each class's measured cost. Either can
+  # change without an edit here.
+  #
+  # It needs a checkout because the lane reads the last run's `.xcresult`
+  # from the working tree, and `e2e_test_class_names` scans the sources.
+  shards:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      count: ${{ steps.count.outputs.count }}
+      shards: ${{ steps.count.outputs.shards }}
+    steps:
+      - name: Checkout iOS repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-ios
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Install fastlane
+        run: |
+          # brew rather than Bundler, for the same reason the other steps do
+          # it: `brew install ruby` upgrades the runner's Ruby, but
+          # /opt/homebrew/lib/ruby/gems/3.4.0/bin/bundle shadows the new one,
+          # so `bundle exec fastlane` cannot find its own gems.
+          brew install fastlane
+
+      - name: Report shard count
+        id: count
+        run: fastlane ios e2e_shard_count
+
+  e2e:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    permissions:
+      contents: read
+    # One job per shard, each on its own machine.
+    #
+    # The suite is ~325 cases at ~25 s each — ~2 h 15 m serially, which does
+    # not fit the 150-minute step budget. That is why the last full run was
+    # killed having reached 47 of 325 cases.
+    #
+    # The shards have to be separate *jobs*, not several simulators inside one
+    # job. A hosted macOS runner is 5 cores / 14 GB (VirtualMac2,1, measured),
+    # and booting three simulators on one took 295 s and drove the load average
+    # to 955 — so concurrency inside a job is not available. A matrix gives
+    # each shard a whole machine instead.
+    #
+    # The shard count and the class grouping both come from the lane, which
+    # knows what the suite costs. A `shards` job runs first and prints the
+    # number, so nothing about the suite's shape is written here.
+    needs: shards
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.shards.outputs.shards) }}
+
+    # The version under test rides in the job name because the run that shows it
+    # is the release's own run — a called workflow cannot set `run-name`, so the
+    # job list is the only place the version can be read at a glance.
+    name: E2E ${{ inputs.version_name }} (${{ inputs.version_code }}) - shard ${{ matrix.shard }}/${{ needs.shards.outputs.count }}
+
+    steps:
+      - name: Checkout iOS repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-ios
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Configure private proto repository access
+        env:
+          PROTO_REPO_TOKEN: ${{ secrets.PROTO_REPO_TOKEN }}
+        run: |
+          if [ -z "$PROTO_REPO_TOKEN" ]; then
+            echo "::error::PROTO_REPO_TOKEN is required to clone whu-ham/ham-proto"
+            exit 1
+          fi
+          PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
+          git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/ham-proto.git".insteadOf "https://github.com/whu-ham/ham-proto.git"
+          echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
+
+      - name: Show Xcode and available simulators
+        run: |
+          # The other iOS workflows build with the runner's default Xcode, so
+          # this step only records the toolchain rather than overriding it.
+          xcodebuild -version
+          xcrun simctl list runtimes
+
+      - name: Install fastlane
+        run: |
+          # The E2E suite runs through `fastlane ios e2e` in ham-ios, so the
+          # lane's own defaults decide how it is invoked.
+          #
+          # Installed with brew rather than Bundler, for the same reason the
+          # release workflow does it: `brew install ruby` upgrades the runner's
+          # Ruby 3.4 to 4.0, but /opt/homebrew/lib/ruby/gems/3.4.0/bin/bundle
+          # shadows the new one, so `bundle install` and `bundle exec fastlane`
+          # look in different gem directories and the latter fails with
+          # "Could not find fastlane-... in locally installed gems".
+          brew install fastlane
+          fastlane --version
+
+      - name: Install protobuf
+        run: |
+          # The Podfile's post_install hook shells out to `protoc` to generate
+          # the HamProtobuf Swift sources, and the binary is not preinstalled
+          # on GitHub-hosted macOS runners.
+          brew install protobuf
+          protoc --version
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.6.4
+          # pod_install.sh runs `pnpm install` before applying the glog patch.
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache CocoaPods downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-e2e-${{ hashFiles('Ham/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-e2e-
+
+      - name: Cache SwiftPM artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm/artifacts
+            ~/Library/Caches/org.swift.swiftpm/repositories
+          key: ${{ runner.os }}-swiftpm-e2e-${{ hashFiles('Ham/Ham.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'Component/HamProtobuf/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swiftpm-e2e-
+
+      - name: Install CocoaPods
+        run: |
+          # Pin the version recorded in Ham/Podfile.lock; a newer CocoaPods
+          # rewrites every checksum in that file.
+          COCOAPODS_VERSION=$(awk -F': *' '/^COCOAPODS:/{print $2; exit}' Ham/Podfile.lock)
+          if [ -z "$COCOAPODS_VERSION" ]; then
+            echo "::error::Could not read the COCOAPODS version from Ham/Podfile.lock"
+            exit 1
+          fi
+          if gem list -i cocoapods --version "$COCOAPODS_VERSION" >/dev/null; then
+            echo "CocoaPods $COCOAPODS_VERSION already installed"
+          else
+            echo "Installing CocoaPods $COCOAPODS_VERSION"
+            gem install cocoapods --version "$COCOAPODS_VERSION" --no-document
+          fi
+
+      - name: Pre-resolve Xcode workspace Swift packages
+        run: |
+          # xcodebuild resolves the workspace's Swift packages itself, and on
+          # macOS runners that hangs indefinitely:
+          #   https://github.com/actions/runner-images/issues/13175
+          # The SwiftPM CLI resolves the same graph reliably and writes to the
+          # shared cache xcodebuild reads.
+          RESOLVED="Ham/Ham.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          WARM_DIR="$RUNNER_TEMP/swiftpm-warm"
+          mkdir -p "$WARM_DIR"
+          python3 - "$RESOLVED" "$WARM_DIR/Package.swift" <<'PY'
+          import json, sys
+          resolved_path, out_path = sys.argv[1], sys.argv[2]
+          with open(resolved_path) as handle:
+              pins = json.load(handle).get("pins", [])
+          if not pins:
+              sys.exit("No pins found in %s" % resolved_path)
+          lines = [
+              "// swift-tools-version: 5.9",
+              "import PackageDescription",
+              "",
+              "let package = Package(",
+              '    name: "SwiftPMWarmCache",',
+              "    products: [],",
+              "    dependencies: [",
+          ]
+          for index, pin in enumerate(sorted(pins, key=lambda p: p["identity"])):
+              version = pin.get("state", {}).get("version")
+              if not version:
+                  continue
+              comma = "," if index < len(pins) - 1 else ""
+              lines.append('        .package(url: "%s", exact: "%s")%s'
+                           % (pin["location"], version, comma))
+          lines += ["    ],", "    targets: []", ")"]
+          with open(out_path, "w") as handle:
+              handle.write("\n".join(lines) + "\n")
+          print("Wrote %s with %d dependencies" % (out_path, len(pins)))
+          PY
+          cd "$WARM_DIR"
+          env SWIFTPM_MAX_CONCURRENT_OPERATIONS=1 swift package resolve
+
+      - name: CocoaPods Install
+        run: |
+          # The project's own script also applies the glog configure patch that
+          # `pnpm install` alone does not.
+          ./pod_install.sh
+
+      - name: Prepare simulator
+        run: |
+          set -euo pipefail
+
+          # Runner images rotate the devices and runtimes they ship, and a
+          # hardcoded device name breaks as soon as one disappears. Resolve the
+          # newest available runtime and the first iPhone from what this image
+          # actually provides. The E2E suite does not depend on a specific
+          # device or OS: it launches with a pinned en_US locale and skips any
+          # screen it cannot reach, so no dispatch input is needed here.
+          #
+          # Vendored SDKs (TPNS, AMap) ship arm64 for the device only and their
+          # simulator slice is x86_64, so the build must exclude arm64 for the
+          # simulator SDK. XGExtension already encodes this in its own Debug
+          # configuration.
+          RUNTIME_ID=$(xcrun simctl list runtimes available -j | python3 -c '
+          import json, sys
+          runtimes = json.load(sys.stdin)["runtimes"]
+          match = None
+          for runtime in runtimes:
+              if not runtime.get("isAvailable"):
+                  continue
+              try:
+                  version = tuple(int(part) for part in runtime["version"].split("."))
+              except (KeyError, ValueError):
+                  continue
+              if match is None or version > match[0]:
+                  match = (version, runtime)
+          if match is None:
+              sys.exit("No available iOS runtime found")
+          print(match[1]["identifier"], match[1]["version"])
+          ')
+
+          RUNTIME=$(echo "$RUNTIME_ID" | cut -d' ' -f1)
+          OS_VERSION=$(echo "$RUNTIME_ID" | cut -d' ' -f2)
+          echo "Runtime: $RUNTIME (iOS $OS_VERSION)"
+
+          DEVICE=$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          types = json.load(sys.stdin)["devicetypes"]
+          candidates = [t for t in types if "iphone" in t["name"].lower()]
+          if not candidates:
+              sys.exit("No iPhone device type found")
+          print(candidates[0]["name"])
+          ')
+          echo "Device: $DEVICE"
+
+          NAME="Ham E2E ${DEVICE} ${OS_VERSION}"
+          # simctl create wants identifiers; a missing device is the normal case
+          # on a fresh runner image.
+          if ! xcrun simctl list devices available | grep -qF "$NAME"; then
+            xcrun simctl create "$NAME" "$DEVICE" "$RUNTIME"
+          fi
+
+          echo "DEVICE_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "OS_VERSION=$OS_VERSION" >> "$GITHUB_ENV"
+          # No destination string is built here any more. The lane resolves
+          # `device` to one itself, as `platform=iOS Simulator,id=<udid>` —
+          # by UDID rather than by name, which is what keeps two simulators
+          # sharing a name from being ambiguous.
+          xcrun simctl list devices available | grep -F "$NAME"
+
+      - name: Run E2E tests
+        timeout-minutes: 150
+        env:
+          NSUnbufferedIO: YES
+        run: |
+          set -euo pipefail
+          # Everything about how the suite is invoked now lives in the lane:
+          # scheme, Debug configuration, the simulator-only build settings and
+          # the result bundle are properties of ham-ios, and keeping them here
+          # meant editing two repositories in lockstep with nothing to catch
+          # the case where only one was updated.
+          #
+          # `device` is the simulator this job created above. fastlane resolves
+          # it to a `platform=iOS Simulator,id=<udid>` destination, so a name
+          # that no longer exists on a rotated runner image falls back to the
+          # default simulator with a warning rather than failing the job.
+          #
+          # The shard count comes from the `shards` job rather than being
+          # written here: the lane derives it from how long the cases take, so
+          # a number typed into this file would drift from the grouping the
+          # lane computes and silently leave classes unrun.
+          #
+          # Always the sharded lane, with no `-only-testing` filter: this run
+          # exists to verify a release, so every shard drives the classes the
+          # lane assigned to it.
+          fastlane ios e2e_shard device:"$DEVICE_NAME" \
+            shard:"${{ matrix.shard }}" shards:"${{ needs.shards.outputs.count }}"
+
+      - name: Summarize test results
+        if: always()
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          # The lane writes the JUnit report and the result bundle into
+          # `fastlane/test_output` in ham-ios's working tree, which is where
+          # this job checks the repository out.
+          # Per shard, because each matrix job produces its own and they are
+          # uploaded separately.
+          REPORT="fastlane/test_output/shard-${{ matrix.shard }}/report.junit"
+          if [ ! -f "$REPORT" ]; then
+            echo "No test report found at $REPORT."
+            exit 0
+          fi
+          LABEL="iOS E2E"
+          if [ -n "$VERSION_NAME" ]; then
+            LABEL="$LABEL $VERSION_NAME"
+          fi
+          if [ -n "$VERSION_CODE" ]; then
+            LABEL="$LABEL ($VERSION_CODE)"
+          fi
+          {
+            echo "## $LABEL"
+            echo
+            echo "### iOS E2E results"
+            echo
+            # One line per suite: name, test count, failure count.
+            python3 - "$REPORT" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse(sys.argv[1]).getroot()
+          for suite in root.iter("testsuite"):
+              print("- `%s`: %s tests, %s failures, %s skipped" % (
+                  suite.get("name") or "(unnamed)",
+                  suite.get("tests") or 0,
+                  suite.get("failures") or 0,
+                  suite.get("skipped") or 0))
+          PY
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Namespaced per workflow, because these results now share a run with
+          # the release's own artifacts.
+          name: ios-auto-e2e-results-shard-${{ matrix.shard }}
+          # Written by the lane into ham-ios's tree, not by xcodebuild into
+          # $RUNNER_TEMP.
+          path: |
+            fastlane/test_output/shard-${{ matrix.shard }}/report.junit
+            fastlane/test_output/shard-${{ matrix.shard }}/Tests iOS.xcresult
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Cleanup proto git config
+        if: always()
+        run: |
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi

@@ -449,3 +449,26 @@ jobs:
           if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
             rm -f "$GIT_CONFIG_GLOBAL"
           fi
+
+  # The suite runs as the tail of the release rather than as a run of its own:
+  # this job is what produced the build worth testing, and a version put out
+  # with no E2E behind it says nothing about whether the app still works.
+  #
+  # `needs: build` is the whole gate. A job whose dependency failed is skipped
+  # unless it opts back in with `if: always()`, so this never follows a build
+  # that did not pass.
+  #
+  # The version name and code come from the request rather than from the built
+  # artifact: they are what identifies the release to a reader of the run, and
+  # the rest of this workflow already uses them as the release's identity.
+  #
+  # `secrets: inherit` because the suite checks the app out from the same
+  # private repositories, with the same tokens the build used.
+  e2e:
+    needs: build
+    uses: ./.github/workflows/android-e2e-auto.yml
+    with:
+      source_ref: ${{ github.event.client_payload.source_ref }}
+      version_name: ${{ github.event.client_payload.version_name }}
+      version_code: ${{ github.event.client_payload.version_code }}
+    secrets: inherit

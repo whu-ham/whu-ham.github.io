@@ -1,0 +1,595 @@
+name: Android Auto E2E
+
+# The automatic half of the E2E story: the Android release workflow calls this
+# once its build job has passed, so a version is never shipped without the suite
+# having run against it.
+#
+# There is deliberately no `workflow_dispatch`. A run of this suite only makes
+# sense as the tail of a release, and exposing the same knobs twice would let
+# the two halves drift apart. android-e2e.yml is the manual equivalent.
+#
+# `workflow_call` rather than a dispatched event or `workflow_run`: only a
+# reusable workflow can be handed the version being verified, and it needs no
+# token to fire. A `repository_dispatch` sent with the repository's own
+# GITHUB_TOKEN never starts a run at all, so that route would have needed a PAT
+# for nothing.
+#
+# No `concurrency` group: these jobs join the calling release's run instead of
+# starting one of their own, and that run is already serialised per version by
+# the release workflow's own group.
+on:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: Android ref to test, e.g. the branch the release was cut from
+        required: true
+        type: string
+      version_name:
+        description: Version name being verified, e.g. 1.8.0
+        required: true
+        type: string
+      version_code:
+        description: Version code being verified, e.g. 325
+        required: true
+        type: string
+      api_level:
+        description: Emulator Android API level
+        required: false
+        type: string
+        default: '35'
+
+jobs:
+  # Asks the fastlane lane for the batch plan before any emulator starts.
+  #
+  # The batches are packed from the test classes and their `@Test` counts, which only the
+  # lane reads, so the count cannot be hard-coded here: a fixed shard count would drift the
+  # moment a class is added and would silently leave new classes unrun — the exact failure
+  # the batching exists to prevent. The lane prints the plan as JSON and this job turns it
+  # into a matrix.
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      batches: ${{ steps.lane.outputs.batches }}
+      count: ${{ steps.lane.outputs.count }}
+      total_tests: ${{ steps.lane.outputs.total_tests }}
+    steps:
+      - name: Checkout Android repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-android
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Setup Ruby
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ruby >/dev/null 2>&1; then
+            echo "::error::Ruby is missing; the E2E lane cannot run"
+            exit 1
+          fi
+          ruby --version
+          ruby -e 'abort("Ruby 3.1 or newer is required") if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1")'
+          echo "GEM_HOME=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "GEM_PATH=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/gems/bin" >> "$GITHUB_PATH"
+          export GEM_HOME="$RUNNER_TEMP/gems"
+          export GEM_PATH="$GEM_HOME"
+          export PATH="$GEM_HOME/bin:$PATH"
+          BUNDLER_VERSION=$(awk '/^BUNDLED WITH$/{getline; gsub(/^ +/, ""); print}' Gemfile.lock)
+          gem install bundler --version "$BUNDLER_VERSION" --no-document
+          bundle config set --local path "$RUNNER_TEMP/bundle"
+          bundle install --jobs 4 --retry 3
+
+      # This lane needs no emulator and no Android SDK: it only scans the test sources.
+      # It deliberately does not call `ensure_connected_device!`, so it runs on a bare
+      # runner in seconds rather than paying for a boot.
+      - name: Read the batch plan
+        id: lane
+        working-directory: android
+        shell: bash
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          # The lane writes its JSON with `puts`, but bundler and fastlane also print to
+          # stdout before it — a versions banner, a deprecation notice — so the captured
+          # value is not guaranteed to be JSON on its own. Take only the last {...} line.
+          #
+          # stderr goes to a file rather than to /dev/null: when the lane dies — a missing
+          # require, a bad constant — its traceback is on stderr, and discarding it here
+          # turns a one-line fix into a silent "printed no JSON" with nothing to debug.
+          bundle exec fastlane android e2e_batch_plan \
+            >"$RUNNER_TEMP/e2e-lane-stdout.log" 2>"$RUNNER_TEMP/e2e-lane-stderr.log" || true
+          grep -E '^\{' "$RUNNER_TEMP/e2e-lane-stdout.log" | tail -n 1 > "$RUNNER_TEMP/e2e-batches.json" || true
+          plan="$(cat "$RUNNER_TEMP/e2e-batches.json")"
+          if [ -z "$plan" ]; then
+            echo "::error::The e2e_batch_plan lane printed no JSON object on stdout"
+            # Both sides, because either can be the one holding the answer: a crash puts
+            # its traceback on stderr, while a lane that ran but never flushed leaves
+            # nothing on either and only the stdout log shows how far it got.
+            echo "::group::Lane stdout"
+            cat "$RUNNER_TEMP/e2e-lane-stdout.log" || true
+            echo "::endgroup::"
+            echo "::group::Lane stderr"
+            cat "$RUNNER_TEMP/e2e-lane-stderr.log" || true
+            echo "::endgroup::"
+            exit 1
+          fi
+          printf '%s\n' "$plan" | python3 -m json.tool
+
+          # One Python call, reading the plan from a file rather than from three separate
+          # `-c` snippets. The escaped quotes an f-string needs inside `-c` are a quoting
+          # trap in YAML, and the plan is small enough that parsing it once is clearer —
+          # and cheaper — than parsing it three times.
+          python3 - "$RUNNER_TEMP/e2e-batches.json" "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, os, sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              plan = json.load(handle)
+
+          count = plan["count"]
+          total = plan["total_tests"]
+
+          # A plan with nothing in it means the class scan found no tests, which is a broken
+          # checkout rather than a passing run. Fail here instead of starting zero jobs.
+          if count == 0 or total == 0:
+              sys.exit("::error::The batch plan is empty; no :app test classes were found")
+
+          # Only the batch numbers travel in the matrix. Putting the class lists in the
+          # `matrix` value would make each job name unreadably long, and the lane re-derives
+          # the same classes from the same sources on the runner anyway.
+          numbers = [batch["number"] for batch in plan["batches"]]
+
+          # Only the three key/value pairs go to $GITHUB_OUTPUT. Everything else — the
+          # pretty-printed plan, the notice — goes to the step summary, because the output
+          # file is parsed strictly: a stray `::notice::` line is read as a malformed
+          # key/value pair and fails the step with "Unable to process file command".
+          version_name = os.environ.get("VERSION_NAME", "")
+          version_code = os.environ.get("VERSION_CODE", "")
+          label = "Android E2E"
+          if version_name:
+              label += " " + version_name
+          if version_code:
+              label += " (%s)" % version_code
+
+          with open(sys.argv[2], "a", encoding="utf-8") as summary:
+              summary.write("## %s\n\n" % label)
+              summary.write("Planned %d batches covering %d tests\n\n" % (count, total))
+              summary.write("```json\n%s\n```\n" % json.dumps(plan, indent=2))
+
+          out = open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8")
+          out.write("batches<<EOF\n")
+          out.write(json.dumps(numbers))
+          out.write("\nEOF\n")
+          out.write("count=%d\n" % count)
+          out.write("total_tests=%d\n" % total)
+          out.close()
+          PY
+
+  e2e:
+    needs: plan
+
+    # One batch per job, so each batch gets its own runner, its own emulator and — the part
+    # that matters — its own instrumentation process. That is what the batching is for: one
+    # process retains memory per case and dies at the 192 MB growth limit, so a batch that
+    # outlives its process budget takes every case after it down with it. Running the
+    # batches side by side turns a ~55 minute serial loop into one job's worth of wall time.
+    #
+    # `fail-fast: false` because a red batch is the interesting result, not a reason to
+    # cancel the others: one OOMing batch says nothing about the rest, and cancelling them
+    # would throw away the coverage that makes the run worth reading.
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+
+    # The version under test rides in the job name because the run that shows it is the
+    # release's own run — a called workflow cannot set `run-name`, so the job list is the
+    # only place the version can be read at a glance.
+    name: E2E ${{ inputs.version_name }} (${{ inputs.version_code }}) - batch ${{ matrix.batch }}/${{ needs.plan.outputs.count }}
+
+    # Google publishes the Android emulator for Linux as x86_64 only, and the
+    # Linux runners expose KVM, so the x86_64 system image boots accelerated.
+    # The emulator also ships a darwin_aarch64 build, but hosted macOS runners
+    # deny nested virtualization: the ARM emulator dies immediately with
+    # "HVF error: HV_UNSUPPORTED" and the AVD never comes online.
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+
+    steps:
+      - name: Enable KVM group perms
+        run: |
+          # The emulator action probes /dev/kvm and silently falls back to
+          # `-accel off` when the runner user cannot open it. Software-emulated
+          # x86_64 then never finishes booting inside the timeout. Granting
+          # group access here is the setup the action's README requires for
+          # hardware acceleration on Linux runners.
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Free runner disk space
+        run: |
+          # Hosted runners ship a large preinstalled toolchain that an Android
+          # build never touches. Removing it leaves room for the SDK, the
+          # emulator image, and the Gradle build output.
+          #
+          # Keep swap enabled. Disabling it here used to be cargo-culted in
+          # from the usual disk-space snippets, but this job is memory-bound
+          # rather than disk-bound: the emulator reserves 3G and Gradle peaks
+          # well above its heap while running CMake, KSP and Dex. With swap
+          # off, memory pressure is resolved by the kernel OOM killer, which
+          # tears down the whole runner mid-build. With swap on, the same
+          # pressure degrades to paging instead.
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY/CodeQL" 2>/dev/null || true
+          df -h /
+
+      - name: Checkout Android repository
+        uses: actions/checkout@v5
+        with:
+          repository: whu-ham/ham-android
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
+          fetch-depth: 1
+
+      - name: Configure private proto repository access
+        env:
+          PROTO_REPO_TOKEN: ${{ secrets.PROTO_REPO_TOKEN }}
+        run: |
+          if [ -z "$PROTO_REPO_TOKEN" ]; then
+            echo "::error::PROTO_REPO_TOKEN is required to clone whu-ham/ham-proto"
+            exit 1
+          fi
+          PROTO_GIT_CONFIG="$RUNNER_TEMP/ham-proto-gitconfig"
+          git config --file "$PROTO_GIT_CONFIG" url."https://x-access-token:${PROTO_REPO_TOKEN}@github.com/whu-ham/".insteadOf "https://github.com/whu-ham/"
+          echo "GIT_CONFIG_GLOBAL=$PROTO_GIT_CONFIG" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
+        with:
+          version: 10.6.4
+          run_install: false
+          dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # The checked-in gradle.properties asks for a 10 GB heap and 16 parallel
+      # workers, which does not fit on a hosted runner that also has to run the
+      # emulator. A Gradle user-home gradle.properties takes precedence over the
+      # project one, so this tunes the build without touching the checkout.
+      #
+      # The Linux runner has 16 GB total. The AVD below reserves 3 GB, and the
+      # build's real peaks come from parallel CMake/Clang, KSP and Dex workers
+      # rather than from the Gradle heap alone, so cap the heap at 3 GB and cap
+      # worker count to keep the combined ceiling well under the machine.
+      - name: Tune Gradle for hosted runners
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle"
+          cat >> "$HOME/.gradle/gradle.properties" <<'GRADLE'
+          org.gradle.daemon=false
+          org.gradle.parallel=false
+          org.gradle.workers.max=2
+          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
+          GRADLE
+
+      - name: Setup Ruby
+        working-directory: android
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The E2E suite is driven through fastlane: it has to run the instrumentation
+          # in several batches of test classes rather than one invocation, and doing that
+          # with a shell loop inside the emulator action's `script` is not possible —
+          # script-parser.ts splits the value on newlines and runs each line as its own
+          # `sh -c`, so no variable survives across lines and any `if`/`for` block fails
+          # to parse. A lane keeps the loop in Ruby, where it belongs.
+          if ! command -v ruby >/dev/null 2>&1; then
+            echo "::error::Ruby is missing; the E2E lane cannot run"
+            exit 1
+          fi
+          if ! command -v make >/dev/null 2>&1; then
+            echo "::error::make is missing and this runner cannot install build tools"
+            exit 1
+          fi
+          ruby --version
+          ruby -e 'abort("Ruby 3.1 or newer is required") if Gem::Version.new(RUBY_VERSION) < Gem::Version.new("3.1")'
+          echo "GEM_HOME=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "GEM_PATH=$RUNNER_TEMP/gems" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/gems/bin" >> "$GITHUB_PATH"
+          export GEM_HOME="$RUNNER_TEMP/gems"
+          export GEM_PATH="$GEM_HOME"
+          export PATH="$GEM_HOME/bin:$PATH"
+          BUNDLER_VERSION=$(awk '/^BUNDLED WITH$/{getline; gsub(/^ +/, ""); print}' Gemfile.lock)
+          gem install bundler --version "$BUNDLER_VERSION" --no-document
+          bundle config set --local path "$RUNNER_TEMP/bundle"
+          bundle install --jobs 4 --retry 3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-home-cache-cleanup: true
+
+      # `packages` is set explicitly to drop `tools` from the action's default of
+      # "tools platform-tools". Google removed the `tools` package from the SDK, and a
+      # current `sdkmanager` exits 1 on it ("Failed to find package 'tools'") rather than
+      # warning, which fails this step and skips everything after it. `platform-tools` is
+      # also installed by the step below, listed here only so the action has something to
+      # do; the build's real packages come from there.
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+            platform-tools \
+            platforms\;android-36 \
+            build-tools\;36.0.0 \
+            ndk\;27.0.12077973 \
+            cmake\;3.22.1
+          echo "ANDROID_USER_HOME=$RUNNER_TEMP/android-user-home" >> "$GITHUB_ENV"
+
+      - name: Run instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ inputs.api_level }}
+          target: google_apis
+          # GithubDebug keeps both arm64-v8a and x86_64: the Github flavor pins
+          # arm64-v8a and the debug build type adds x86_64, and AGP merges
+          # abiFilters as a union. The x86_64 slice is what this emulator runs.
+          arch: x86_64
+          profile: pixel_6
+          # The Linux runner has 4 cores; leave two for the host and Gradle.
+          cores: 2
+          # 3 GB rather than 4: the emulator and the Gradle build have to fit
+          # in 16 GB together, and the build's own peak is what pushes it over.
+          ram-size: 3072M
+          # No heap-size: the action writes it to `vm.heapSize` in the AVD's
+          # config.ini, which the emulator ignores. An AVD set here to 512M
+          # reports dalvik.vm.heapsize=576m and heapgrowthlimit=192m — neither
+          # is the value passed — so the setting only ever looked like it took
+          # effect. The 192 MB growth limit comes from the system image and is
+          # what the E2E batches are sized against.
+          disable-animations: true
+          # A boot failure leaves adb polling against a dead emulator, so cap
+          # the wait well below the job timeout and let the step fail fast.
+          emulator-boot-timeout: 600
+          working-directory: android
+          # Keep this a single logical line. script-parser.ts splits the value
+          # on newlines and runs each line as its own `sh -c`, so variables do
+          # not survive across lines, multi-line `if`/`fi` blocks fail to
+          # parse, and `#` comment lines are dropped. `sh` is dash on Ubuntu,
+          # so `set -o pipefail` is illegal here too.
+          #
+          # The :app suite is driven by the `e2e` lane rather than by a shell loop here.
+          #
+          # Instrumentation reuses one process for a whole invocation and the app retains
+          # memory per case, so all ~848 cases in one invocation exhausts the 192 MB cap
+          # and the run dies partway through — the last one reported `Finished 139 tests`,
+          # leaving 255 cases unrun. Splitting into batches of test classes gives each
+          # batch its own process, so the retained set starts over.
+          #
+          # The loop cannot live here: script-parser.ts splits this value on newlines and
+          # runs each line as its own `sh -c`, so no variable survives across lines and
+          # any `if`/`for` block fails to parse. The lane holds the loop in Ruby, and this
+          # workflow runs one batch per matrix leg so the batches also run in parallel.
+          #
+          # The batching is done with an explicit per-invocation class list, not with
+          # AGP's numShards/shardIndex: those are dropped before they reach
+          # AndroidJUnitRunner, so every shard ran the entire suite instead of its slice.
+          # That is why a sharded run still died at the same case as an unsharded one.
+          #
+          # This job runs exactly one batch: `E2E_BATCH` selects it, and the lane raises at
+          # the end of that batch so a red batch fails this job on its own rather than
+          # waiting for the summary below.
+          #
+          # `E2E_BATCH` has to be exported at the head of this single logical line. The
+          # emulator action hands the value to `sh -c`, so an `env:` on the step would not
+          # reach the lane, and the one-line constraint applies either way.
+          script: >-
+            chmod +x ./gradlew &&
+            export E2E_BATCH='${{ matrix.batch }}' &&
+            bundle exec fastlane android e2e
+
+      # This job runs one batch, so it summarises one batch. The whole-run totals are
+      # produced by the `summary` job below, which downloads every leg's slice.
+      #
+      # The per-job check is what catches the crash: Gradle reports an OOMing batch as
+      # "Process crashed", which says nothing about how many cases never ran, so a batch
+      # that died on case 1 looks exactly like a batch that failed one assertion.
+      - name: Summarise E2E batch results
+        if: always()
+        working-directory: android
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import glob, os, xml.etree.ElementTree as ET, sys
+
+          expected = os.environ["E2E_BATCH"]
+
+          # Per-batch XMLs are the source of truth. The lane moves each batch's
+          # results out of the live results directory as soon as it finishes,
+          # because the next invocation overwrites that path.
+          files = sorted(glob.glob("build/e2e-batches/batch-*/*/**/*.xml", recursive=True))
+          if not files:
+              files = sorted(glob.glob("app/build/outputs/androidTest-results/**/*.xml", recursive=True))
+              print("::warning::No per-batch results found; falling back to the live results directory")
+
+          total = failures = errors = 0
+          for path in files:
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              if root.tag not in ("testsuite", "testsuites"):
+                  continue
+              for suite in ([root] if root.tag == "testsuite" else root.iter("testsuite")):
+                  total += int(suite.get("tests", 0) or 0)
+                  failures += int(suite.get("failures", 0) or 0)
+                  errors += int(suite.get("errors", 0) or 0)
+
+          print(f"E2E batch {expected}: {total} cases, {failures} failures, {errors} errors")
+          if total == 0:
+              print(f"::error::Batch {expected} collected no results at all; it almost certainly crashed early")
+              sys.exit(1)
+          PY
+        env:
+          E2E_BATCH: ${{ matrix.batch }}
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # One artifact per batch. `upload-artifact@v4` refuses a name another job in the
+          # same run already used, so all ten legs uploading "android-e2e-reports" would
+          # fail nine of them; the batch number keeps the names distinct and `summary`
+          # below merges them back into one.
+          #
+          # The name is also namespaced per workflow, because these reports now share a
+          # run with the release's own artifacts.
+          name: android-auto-e2e-reports-batch-${{ matrix.batch }}
+          path: |
+            android/**/build/reports/androidTests/**
+            android/**/build/outputs/androidTest-results/**
+            android/**/build/e2e-batches/**
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Cleanup private proto repository access
+        if: always()
+        run: |
+          if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
+            rm -f "$GIT_CONFIG_GLOBAL"
+          fi
+
+  # Recombines the per-batch slices into one verdict.
+  #
+  # Each matrix leg already fails itself when its batch goes red, so this job is not what
+  # decides pass/fail — it is what restores the whole-run view the batching split apart.
+  # Without it, reading a run means opening ten job logs to learn whether 848 cases ran or
+  # 139 of them did.
+  #
+  # `if: always()` because a failing leg must not stop the totals from being reported; the
+  # explicit `needs.e2e.result` check is what keeps this job from turning a red run green.
+  summary:
+    needs: [plan, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Download all batch results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: android-auto-e2e-reports-batch-*
+          path: e2e-results
+
+      - name: Summarise the whole run
+        env:
+          PLANNED_BATCHES: ${{ needs.plan.outputs.count }}
+          PLANNED_TESTS: ${{ needs.plan.outputs.total_tests }}
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import glob, os, xml.etree.ElementTree as ET, sys
+
+          files = sorted(glob.glob("e2e-results/**/*.xml", recursive=True))
+          total = failures = errors = 0
+          batches = {}
+
+          for path in files:
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              if root.tag not in ("testsuite", "testsuites"):
+                  continue
+              for suite in ([root] if root.tag == "testsuite" else root.iter("testsuite")):
+                  total += int(suite.get("tests", 0) or 0)
+                  failures += int(suite.get("failures", 0) or 0)
+                  errors += int(suite.get("errors", 0) or 0)
+              # The batch number comes from the artifact directory it arrived in, which is
+              # the only thing that survives the download: the lane's batch-* path is
+              # inside the artifact but the artifact name is what groups the legs.
+              marker = "batch-"
+              if marker in path:
+                  key = path.split(marker)[1].split("/")[0]
+              else:
+                  key = os.path.basename(os.path.dirname(path))
+              batches[key] = batches.get(key, 0) + int(root.get("tests", 0) or 0)
+
+          planned = int(os.environ.get("PLANNED_BATCHES", "0") or 0)
+          planned_tests = int(os.environ.get("PLANNED_TESTS", "0") or 0)
+
+          print(f"E2E cases executed: {total}, failures: {failures}, errors: {errors}")
+          for batch in sorted(batches, key=lambda s: (len(s), s)):
+              print(f"  batch-{batch}: {batches[batch]} cases")
+
+          ran_legs = len([k for k in batches if k.isdigit()])
+          missing = [n for n in range(1, planned + 1) if str(n) not in batches]
+          if missing:
+              print(f"::error::These batches produced no results at all: {missing}")
+              sys.exit(1)
+          if planned and ran_legs != planned:
+              print(f"::error::Expected {planned} batches, collected {ran_legs}")
+              sys.exit(1)
+          if planned_tests and total < planned_tests:
+              # The number the batching exists to protect. A batch that dies mid-run still
+              # writes an XML, so a short total is the only signal that cases never ran.
+              print(f"::error::Only {total} of {planned_tests} planned cases ran; a batch aborted early")
+              sys.exit(1)
+
+          print(f"::notice::All {planned} batches reported; {total}/{planned_tests} planned cases ran")
+
+          # The version is repeated here rather than only in the plan job's summary: this
+          # is the summary a reader lands on last, and it is the one carrying the verdict.
+          version_name = os.environ.get("VERSION_NAME", "")
+          version_code = os.environ.get("VERSION_CODE", "")
+          label = "Android E2E"
+          if version_name:
+              label += " " + version_name
+          if version_code:
+              label += " (%s)" % version_code
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("## %s\n\n" % label)
+              summary.write("E2E cases executed: %d, failures: %d, errors: %d\n"
+                            % (total, failures, errors))
+          PY
+
+      - name: Fail if any batch failed
+        run: |
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::At least one E2E batch failed (e2e job result: ${{ needs.e2e.result }})"
+            exit 1
+          fi
+          echo "All E2E batches passed"
