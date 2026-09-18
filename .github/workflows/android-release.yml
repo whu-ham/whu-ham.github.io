@@ -407,19 +407,32 @@ jobs:
           # download page never links past a handful of them anyway.
           #
           # A release only counts as a beta when GitHub flags it as a
-          # prerelease *and* its tag looks like `v1.7.6-beta9`. The tag shape
-          # keeps the releases this workflow never created — the older
-          # `v1.6.3b1` style among them — out of the pruning.
+          # prerelease *and* its tag is `v`, a dotted numeric version, then
+          # `-betaN`, as in `v1.7.6-beta9`. The version grammar is numeric on
+          # purpose: a looser match would treat an unrelated prerelease such
+          # as `vnightly-beta1` as an Android beta and delete it, and the tag
+          # shape also keeps the releases this workflow never created
+          # out of the pruning.
           #
-          # Sorting by createdAt rather than trusting the API order keeps the
+          # The pages are collected first and filtered in a single jq pass,
+          # because `gh api --paginate` applies `--jq` to each page on its own:
+          # slicing there would keep five betas *per page* and delete the rest
+          # of every page. `gh release list` is no alternative, since its
+          # `--limit` spans pages but is still a ceiling, so betas beyond it
+          # stay invisible to the filter and silently survive the pruning.
+          #
+          # Sorting by created_at rather than trusting the API order keeps the
           # oldest betas on the chopping block whichever way GitHub returns
           # them. The git tags are deliberately left in place: the next beta
           # number is derived from them, and reusing a number whose release
           # was deleted would point existing download links at a different
           # build.
-          PRUNE_TAGS=$(gh release list --repo "$GITHUB_REPOSITORY" \
-            --limit 100 --json tagName,isPrerelease,createdAt \
-            --jq "[.[] | select(.isPrerelease and (.tagName | test(\"^v.+-beta[0-9]+$\")))] | sort_by(.createdAt) | reverse | .[$MAX_BETA_RELEASES:][].tagName")
+          RELEASE_LIST="$RUNNER_TEMP/releases.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "$RELEASE_LIST"
+          PRUNE_TAGS=$(jq -r --argjson keep "$MAX_BETA_RELEASES" '
+            [.[] | select(.prerelease and (.tag_name | test("^v[0-9]+([.][0-9]+)*-beta[0-9]+$")))]
+            | sort_by(.created_at) | reverse
+            | .[$keep:][].tag_name' "$RELEASE_LIST")
           if [ -z "$PRUNE_TAGS" ]; then
             echo "At most $MAX_BETA_RELEASES beta releases present, nothing to prune."
             exit 0
