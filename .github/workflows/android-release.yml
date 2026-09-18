@@ -392,6 +392,56 @@ jobs:
           }
           JSON
 
+      # Runs after the callback so a pruning failure cannot stop ham-android
+      # from recording the release it just published.
+      - name: Prune superseded beta releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MAX_BETA_RELEASES=5
+
+          # Every beta release carries its own APKs, so the release list is
+          # where the repository storage goes. Only the newest
+          # MAX_BETA_RELEASES betas stay: older ones are superseded, and the
+          # download page never links past a handful of them anyway.
+          #
+          # A release only counts as a beta when GitHub flags it as a
+          # prerelease *and* its tag is `v`, a dotted numeric version, then
+          # `-betaN`, as in `v1.7.6-beta9`. The version grammar is numeric on
+          # purpose: a looser match would treat an unrelated prerelease such
+          # as `vnightly-beta1` as an Android beta and delete it, and the tag
+          # shape also keeps the releases this workflow never created
+          # out of the pruning.
+          #
+          # The pages are collected first and filtered in a single jq pass,
+          # because `gh api --paginate` applies `--jq` to each page on its own:
+          # slicing there would keep five betas *per page* and delete the rest
+          # of every page. `gh release list` is no alternative, since its
+          # `--limit` spans pages but is still a ceiling, so betas beyond it
+          # stay invisible to the filter and silently survive the pruning.
+          #
+          # Sorting by created_at rather than trusting the API order keeps the
+          # oldest betas on the chopping block whichever way GitHub returns
+          # them. The git tags are deliberately left in place: the next beta
+          # number is derived from them, and reusing a number whose release
+          # was deleted would point existing download links at a different
+          # build.
+          RELEASE_LIST="$RUNNER_TEMP/releases.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "$RELEASE_LIST"
+          PRUNE_TAGS=$(jq -r --argjson keep "$MAX_BETA_RELEASES" '
+            [.[] | select(.prerelease and (.tag_name | test("^v[0-9]+([.][0-9]+)*-beta[0-9]+$")))]
+            | sort_by(.created_at) | reverse
+            | .[$keep:][].tag_name' "$RELEASE_LIST")
+          if [ -z "$PRUNE_TAGS" ]; then
+            echo "At most $MAX_BETA_RELEASES beta releases present, nothing to prune."
+            exit 0
+          fi
+          printf '%s\n' "$PRUNE_TAGS" | while read -r TAG; do
+            echo "Deleting superseded beta release $TAG"
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+          done
+
       - name: Cleanup credentials
         if: always()
         run: |
