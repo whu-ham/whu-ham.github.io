@@ -64,9 +64,16 @@ jobs:
       contents: read
     # One job per shard, each on its own machine.
     #
-    # The suite is ~325 cases at ~25 s each — ~2 h 15 m serially, which does
-    # not fit the 150-minute step budget. That is why the last full run was
-    # killed having reached 47 of 325 cases.
+    # The suite is ~567 cases at ~35 s each — ~5 h 30 m serially, which does
+    # not fit any sane step budget. That is why the last full run was killed
+    # having reached 47 of 325 cases.
+    #
+    # The budget that decides the split — 60 minutes per simulator — lives in
+    # ham-ios (`E2E_SHARD_BUDGET_SECONDS`), deliberately not here. It is a
+    # property of how long one simulator is allowed to run, which this
+    # workflow has no say in; a number typed here would drift from the one the
+    # lane sizes its groups against, and the shard count computed from it
+    # would no longer match the grouping.
     #
     # The shards have to be separate *jobs*, not several simulators inside one
     # job. A hosted macOS runner is 5 cores / 14 GB (VirtualMac2,1, measured),
@@ -324,8 +331,17 @@ jobs:
           if [ -n "$INPUT_ONLY_TESTING" ]; then
             fastlane ios e2e device:"$DEVICE_NAME" only_testing:"$INPUT_ONLY_TESTING"
           else
+            # Refuse to run if the shards job produced no count. An empty
+            # `shards:` would leave the lane to run the whole suite on this one
+            # simulator, which cannot finish inside the step timeout — and it
+            # would look like a slow job rather than a broken one.
+            COUNT="${{ needs.shards.outputs.count }}"
+            if [ -z "$COUNT" ]; then
+              echo "::error::shards job produced no count; refusing to run this shard."
+              exit 1
+            fi
             fastlane ios e2e_shard device:"$DEVICE_NAME" \
-              shard:"${{ matrix.shard }}" shards:"${{ needs.shards.outputs.count }}"
+              shard:"${{ matrix.shard }}" shards:"$COUNT"
           fi
 
       - name: Summarize test results
