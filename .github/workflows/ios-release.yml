@@ -23,6 +23,7 @@ jobs:
       version_code: ${{ steps.build.outputs.version_code }}
       tag: ${{ steps.build.outputs.tag }}
       commit_sha: ${{ steps.bump.outputs.commit_sha }}
+      source_sha: ${{ steps.source.outputs.sha }}
 
     steps:
       - name: Checkout iOS repository
@@ -32,6 +33,19 @@ jobs:
           ref: ${{ github.event.client_payload.source_ref }}
           token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
           fetch-depth: 0
+
+      # Pin the suite to the commit this release was built from. `source_ref`
+      # names a branch, so resolving it again after the TestFlight upload can
+      # land on a newer commit than the one that was uploaded: a later fix
+      # would then make a broken release look verified, and an unrelated
+      # regression would fail one that was fine.
+      #
+      # Deliberately not `commit_sha` above: that one is recorded by the
+      # version-bump step, which runs after the upload, so it names a commit
+      # the build never saw.
+      - name: Record the built commit
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Configure private proto repository access
         env:
@@ -400,3 +414,30 @@ jobs:
           if [ -n "${GIT_CONFIG_GLOBAL:-}" ]; then
             rm -f "$GIT_CONFIG_GLOBAL"
           fi
+
+  # The suite runs as the tail of the release rather than as a run of its own:
+  # this job is what produced the build worth testing, and a version put out
+  # with no E2E behind it says nothing about whether the app still works.
+  #
+  # `needs: build` is the whole gate. A job whose dependency failed is skipped
+  # unless it opts back in with `if: always()`, so this never follows a build
+  # that did not pass.
+  #
+  # The version name and code are the build job's own outputs rather than the
+  # request payload: those are the values the lane actually produced, and they
+  # are the ones this workflow has already validated and reported downstream.
+  #
+  # The commit is the SHA `build` recorded at checkout, not `source_ref` (and
+  # not its `commit_sha` output, which names the version bump); see that step
+  # for why re-resolving the branch here would be wrong.
+  #
+  # `secrets: inherit` because the suite checks the app out from the same
+  # private repositories, with the same tokens the build used.
+  e2e:
+    needs: build
+    uses: ./.github/workflows/ios-e2e-auto.yml
+    with:
+      source_sha: ${{ needs.build.outputs.source_sha }}
+      version_name: ${{ needs.build.outputs.version_name }}
+      version_code: ${{ needs.build.outputs.version_code }}
+    secrets: inherit
