@@ -15,6 +15,7 @@ jobs:
       contents: write
     outputs:
       public_tag: ${{ steps.public-release.outputs.public_tag }}
+      source_sha: ${{ steps.source.outputs.sha }}
 
     steps:
       - name: Checkout Android repository
@@ -24,6 +25,18 @@ jobs:
           ref: ${{ github.event.client_payload.source_ref }}
           token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
           fetch-depth: 0
+
+      # Pin the suite to the commit this release was built from. `source_ref`
+      # names a branch, so resolving it again after the APK has been published
+      # can land on a newer commit than the one that was built: a later fix
+      # would then make a broken release look verified, and an unrelated
+      # regression would fail one that was fine.
+      #
+      # Recorded before the version files are rewritten below, because those
+      # edits are never committed — HEAD here is exactly what gets built.
+      - name: Record the built commit
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Configure private proto repository access
         env:
@@ -462,13 +475,16 @@ jobs:
   # artifact: they are what identifies the release to a reader of the run, and
   # the rest of this workflow already uses them as the release's identity.
   #
+  # The commit is the SHA `build` recorded at checkout, not `source_ref`; see
+  # that step for why re-resolving the branch here would be wrong.
+  #
   # `secrets: inherit` because the suite checks the app out from the same
   # private repositories, with the same tokens the build used.
   e2e:
     needs: build
     uses: ./.github/workflows/android-e2e-auto.yml
     with:
-      source_ref: ${{ github.event.client_payload.source_ref }}
+      source_sha: ${{ needs.build.outputs.source_sha }}
       version_name: ${{ github.event.client_payload.version_name }}
       version_code: ${{ github.event.client_payload.version_code }}
     secrets: inherit
