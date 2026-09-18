@@ -5,16 +5,27 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Serialise deployments: a queued deploy must not cancel one that is already publishing.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  docs:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
         with:
+          # VitePress `lastUpdated` timestamps come from the commit history.
           fetch-depth: 0
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: 25.4.0
       - name: Setup pnpm
@@ -22,13 +33,24 @@ jobs:
         with:
           version: 11.1.3
           run_install: true
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
       - name: Build VitePress site
         run: pnpm docs:build
-      - name: Deploy to GitHub Pages
-        uses: crazy-max/ghaction-github-pages@v2
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
         with:
-          target_branch: gh-pages
-          build_dir: docs/.vitepress/dist
-        env:
-          # @see https://docs.github.com/cn/actions/reference/authentication-in-a-workflow#about-the-github_token-secret
-          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          path: docs/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
