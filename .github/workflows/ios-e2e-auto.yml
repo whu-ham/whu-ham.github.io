@@ -1,43 +1,92 @@
 name: iOS Auto E2E
+run-name: iOS Auto E2E (release run ${{ github.event.workflow_run.run_number }})
 
-# The automatic half of the E2E story: the iOS release workflow calls this once
-# its build job has passed, so a version is never shipped without the suite
-# having run against it.
+# The automatic half of the E2E story: this starts when the iOS release run
+# completes, so a version is never shipped without the suite having run against
+# it — but it runs as a run of its own rather than as a job of that release.
+#
+# Which is what `workflow_run` buys over `workflow_call`. A called workflow's
+# jobs join the caller's run, and the release's `concurrency` group stays
+# occupied for as long as that run does: the suite kept the release open for
+# hours, and — the group here being a single `ios-release` — the next release
+# queued behind it, and a red suite marked as failed a release whose upload and
+# announcement had both succeeded. Splitting the two leaves the release ending
+# with its build, and gives the suite a run — and a name — of its own.
 #
 # There is deliberately no `workflow_dispatch`. A run of this suite only makes
 # sense as the tail of a release, and exposing the same knobs twice would let
 # the two halves drift apart. ios-e2e.yml is the manual equivalent.
 #
-# `workflow_call` rather than a dispatched event or `workflow_run`: only a
-# reusable workflow can be handed the version being verified, and it needs no
-# token to fire. A `repository_dispatch` sent with the repository's own
+# Nor a dispatched event: a `repository_dispatch` sent with the repository's own
 # GITHUB_TOKEN never starts a run at all, so that route would have needed a PAT
 # for nothing.
 #
-# No `concurrency` group: these jobs join the calling release's run instead of
-# starting one of their own, and that run is already serialised by the release
-# workflow's own group.
+# The version under test and the commit it was built from reach this run as an
+# artifact the release uploads, because a `workflow_run` event carries no inputs
+# of its own. Both are needed: the version is what this run claims to have
+# verified, and the commit is an immutable SHA rather than a branch that may
+# have moved on since the build.
 #
-# No `only_testing` input, unlike the manual workflow: an automatic run exists
-# to verify a release, so it always drives the whole suite. A filter here could
-# only ever narrow that into a run which looks green and covers less.
+# No `only_testing` equivalent, unlike the manual workflow: an automatic run
+# exists to verify a release, so it always drives the whole suite. A filter here
+# could only ever narrow that into a run which looks green and covers less.
 on:
-  workflow_call:
-    inputs:
-      source_sha:
-        description: Immutable SHA of the iOS commit the release was built from
-        required: true
-        type: string
-      version_name:
-        description: Version name being verified, e.g. 1.8.0
-        required: true
-        type: string
-      version_code:
-        description: Version code being verified, e.g. 325
-        required: true
-        type: string
+  workflow_run:
+    workflows: ["iOS Release Build"]
+    types: [completed]
+
+# Two releases in quick succession must not drive two simulator fleets at once,
+# and a suite already running must never be cancelled: cancelling one leaves a
+# version unverified and the runner time already spent on it unrecoverable —
+# macOS minutes above all.
+concurrency:
+  group: ios-e2e-auto
+  cancel-in-progress: false
 
 jobs:
+  # Reads what the release published about itself.
+  #
+  # The gate on the release's conclusion lives here and nowhere else: every
+  # other job depends on this one, so a release run that failed leaves the whole
+  # suite skipped rather than verifying nothing behind a run that looks green.
+  context:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      source_sha: ${{ steps.context.outputs.source_sha }}
+      version_name: ${{ steps.context.outputs.version_name }}
+      version_code: ${{ steps.context.outputs.version_code }}
+    steps:
+      - name: Download the release context
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-e2e-context
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/release-context
+
+      - name: Read the release context
+        id: context
+        run: |
+          set -euo pipefail
+          FILE=$(find "$RUNNER_TEMP/release-context" -name 'e2e-context.json' -print -quit)
+          if [ -z "$FILE" ]; then
+            echo "::error::the release run published no E2E context artifact"
+            exit 1
+          fi
+          for KEY in source_sha version_name version_code; do
+            VALUE=$(jq -r --arg key "$KEY" '.[$key] // empty' "$FILE")
+            if [ -z "$VALUE" ]; then
+              echo "::error::$KEY is missing from the release context"
+              exit 1
+            fi
+            echo "$KEY=$VALUE" >> "$GITHUB_OUTPUT"
+          done
+
   # Decides how many shards the suite needs, and which classes go in each.
   #
   # Both are the suite's business, not this workflow's: the count comes from
@@ -48,6 +97,7 @@ jobs:
   # It needs a checkout because the lane reads the last run's `.xcresult`
   # from the working tree, and `e2e_test_class_names` scans the sources.
   shards:
+    needs: context
     runs-on: macos-latest
     timeout-minutes: 10
     permissions:
@@ -60,7 +110,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: whu-ham/ham-ios
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ needs.context.outputs.source_sha }}
           token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
           fetch-depth: 1
 
@@ -103,23 +153,23 @@ jobs:
     # The shard count and the class grouping both come from the lane, which
     # knows what the suite costs. A `shards` job runs first and prints the
     # number, so nothing about the suite's shape is written here.
-    needs: shards
+    needs: [context, shards]
     strategy:
       fail-fast: false
       matrix:
         shard: ${{ fromJSON(needs.shards.outputs.shards) }}
 
-    # The version under test rides in the job name because the run that shows it
-    # is the release's own run — a called workflow cannot set `run-name`, so the
-    # job list is the only place the version can be read at a glance.
-    name: E2E ${{ inputs.version_name }} (${{ inputs.version_code }}) - shard ${{ matrix.shard }}/${{ needs.shards.outputs.count }}
+    # The version under test rides in the job name: `run-name` can only reach
+    # the `workflow_run` event, so this is the one place the version can be read
+    # at a glance without opening a job.
+    name: E2E ${{ needs.context.outputs.version_name }} (${{ needs.context.outputs.version_code }}) - shard ${{ matrix.shard }}/${{ needs.shards.outputs.count }}
 
     steps:
       - name: Checkout iOS repository
         uses: actions/checkout@v5
         with:
           repository: whu-ham/ham-ios
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ needs.context.outputs.source_sha }}
           token: ${{ secrets.HAM_IOS_REPO_TOKEN }}
           fetch-depth: 1
 
@@ -358,8 +408,8 @@ jobs:
       - name: Summarize test results
         if: always()
         env:
-          VERSION_NAME: ${{ inputs.version_name }}
-          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ needs.context.outputs.version_name }}
+          VERSION_CODE: ${{ needs.context.outputs.version_code }}
         run: |
           # The lane writes the JUnit report and the result bundle into
           # `fastlane/test_output` in ham-ios's working tree, which is where
