@@ -64,7 +64,7 @@ jobs:
       contents: read
     # One job per shard, each on its own machine.
     #
-    # The suite is ~592 cases at a measured 93.8 s each on CI — ~15 h serially,
+    # The suite is ~592 cases at a measured 83.6 s each on CI — ~13.7 h serially,
     # which does not fit any sane step budget. That is why run 35508403864 lost
     # all five of its shards to the 150-minute step cap, 381 cases in.
     #
