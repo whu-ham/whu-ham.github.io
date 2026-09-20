@@ -396,6 +396,47 @@ jobs:
           PR_URL=$(gh pr view "$BRANCH" --repo "$GITHUB_REPOSITORY" --json url --jq .url)
           echo "::notice::Opened beta metadata PR: ${PR_URL}"
 
+      # Publishes what the E2E suite needs to know about this release.
+      #
+      # Nothing in this workflow waits for the suite any more: ios-e2e-auto.yml
+      # starts its own run off `workflow_run` once this one completes, so this run
+      # ends with the build instead of sitting open for hours. That matters most
+      # here, where the `concurrency` group is a single `ios-release`: while the
+      # suite was a job of this run, the next release sat queued behind it. An
+      # artifact is the only thing that crosses between the two runs — a
+      # `workflow_run` event carries no inputs.
+      #
+      # The commit is the SHA recorded at checkout — not `source_ref`, and not the
+      # `commit_sha` output, which names the version bump: the suite must test the
+      # code this release was built from, not a branch that has moved on since.
+      #
+      # Last step of the job on purpose: the artifact is what starts the suite, so
+      # a build that failed anywhere above publishes nothing and is followed by
+      # no run at all.
+      - name: Write the E2E context
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+          VERSION_NAME: ${{ steps.build.outputs.version_name }}
+          VERSION_CODE: ${{ steps.build.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg sha "$SOURCE_SHA" \
+            --arg name "$VERSION_NAME" \
+            --arg code "$VERSION_CODE" \
+            '{source_sha: $sha, version_name: $name, version_code: $code}' \
+            > "$RUNNER_TEMP/e2e-context.json"
+          cat "$RUNNER_TEMP/e2e-context.json"
+
+      - name: Upload the E2E context
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-e2e-context
+          path: ${{ runner.temp }}/e2e-context.json
+          # A week is generous: the suite starts seconds after this run ends. It
+          # only ever has to outlive a queue behind another suite.
+          retention-days: 7
+
       - name: Cleanup Keychain
         if: always()
         run: |
@@ -415,29 +456,8 @@ jobs:
             rm -f "$GIT_CONFIG_GLOBAL"
           fi
 
-  # The suite runs as the tail of the release rather than as a run of its own:
-  # this job is what produced the build worth testing, and a version put out
-  # with no E2E behind it says nothing about whether the app still works.
-  #
-  # `needs: build` is the whole gate. A job whose dependency failed is skipped
-  # unless it opts back in with `if: always()`, so this never follows a build
-  # that did not pass.
-  #
-  # The version name and code are the build job's own outputs rather than the
-  # request payload: those are the values the lane actually produced, and they
-  # are the ones this workflow has already validated and reported downstream.
-  #
-  # The commit is the SHA `build` recorded at checkout, not `source_ref` (and
-  # not its `commit_sha` output, which names the version bump); see that step
-  # for why re-resolving the branch here would be wrong.
-  #
-  # `secrets: inherit` because the suite checks the app out from the same
-  # private repositories, with the same tokens the build used.
-  e2e:
-    needs: build
-    uses: ./.github/workflows/ios-e2e-auto.yml
-    with:
-      source_sha: ${{ needs.build.outputs.source_sha }}
-      version_name: ${{ needs.build.outputs.version_name }}
-      version_code: ${{ needs.build.outputs.version_code }}
-    secrets: inherit
+  # The suite is no longer a job of this run, but it still follows every release:
+  # ios-e2e-auto.yml starts on `workflow_run` when this run completes, and reads
+  # the context the build job published above. See that step for why the two were
+  # split — in short, this workflow's single `ios-release` concurrency group stayed
+  # occupied for as long as the suite ran.
