@@ -83,7 +83,7 @@ sequenceDiagram
 ::: warning 申請方法
 現在、`client_id`と`client_secret`は開発者に連絡して申請する必要があります。
 
-[GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions)からお問い合わせいただき、以下の情報をご提供ください：
+[Discord コミュニティ](https://discord.gg/GwwGksTDVE)からお問い合わせいただき、以下の情報をご提供ください：
 
 1. アプリケーション名と概要
 2. コールバックURL（`redirect_uri`）ホワイトリスト
