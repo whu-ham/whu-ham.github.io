@@ -138,14 +138,14 @@ jobs:
     # all five of its shards to the 150-minute step cap, 381 cases in.
     #
     # The three numbers that decide the split live in ham-ios, deliberately not
-    # here: the per-case cost (`E2E_MEDIAN_CASE_SECONDS`, 93.8 s, the measured
-    # median), the budget (`E2E_SHARD_BUDGET_SECONDS`, 110 min per simulator)
-    # and the cap (`E2E_MAX_SHARDS`, 9). A number typed here would drift from
+    # here: the per-case cost (`E2E_MEDIAN_CASE_SECONDS`, 83.6 s, the measured
+    # median), the budget (`E2E_SHARD_BUDGET_SECONDS`, 90 min per simulator)
+    # and the cap (`E2E_MAX_SHARDS`, 10). A number typed here would drift from
     # the one the lane sizes its groups against, and the shard count computed
     # from it would no longer match the grouping.
     #
     # The step below is capped at 150 minutes, which is the outer limit — the
-    # lane's 110-minute budget is what keeps a shard clear of it.
+    # lane's 90-minute budget is what keeps a shard clear of it.
     #
     # The shards have to be separate *jobs*, not several simulators inside one
     # job. A hosted macOS runner is 5 cores / 14 GB (VirtualMac2,1, measured),
