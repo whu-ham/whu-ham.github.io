@@ -64,16 +64,19 @@ jobs:
       contents: read
     # One job per shard, each on its own machine.
     #
-    # The suite is ~567 cases at ~35 s each — ~5 h 30 m serially, which does
-    # not fit any sane step budget. That is why the last full run was killed
-    # having reached 47 of 325 cases.
+    # The suite is ~592 cases at a measured 93.8 s each on CI — ~15 h serially,
+    # which does not fit any sane step budget. That is why run 35508403864 lost
+    # all five of its shards to the 150-minute step cap, 381 cases in.
     #
-    # The budget that decides the split — 60 minutes per simulator — lives in
-    # ham-ios (`E2E_SHARD_BUDGET_SECONDS`), deliberately not here. It is a
-    # property of how long one simulator is allowed to run, which this
-    # workflow has no say in; a number typed here would drift from the one the
-    # lane sizes its groups against, and the shard count computed from it
-    # would no longer match the grouping.
+    # The three numbers that decide the split live in ham-ios, deliberately not
+    # here: the per-case cost (`E2E_MEDIAN_CASE_SECONDS`, 93.8 s, the measured
+    # median), the budget (`E2E_SHARD_BUDGET_SECONDS`, 110 min per simulator)
+    # and the cap (`E2E_MAX_SHARDS`, 9). A number typed here would drift from
+    # the one the lane sizes its groups against, and the shard count computed
+    # from it would no longer match the grouping.
+    #
+    # The step below is capped at 150 minutes, which is the outer limit — the
+    # lane's 110-minute budget is what keeps a shard clear of it.
     #
     # The shards have to be separate *jobs*, not several simulators inside one
     # job. A hosted macOS runner is 5 cores / 14 GB (VirtualMac2,1, measured),
