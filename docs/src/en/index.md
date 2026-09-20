@@ -15,7 +15,7 @@ hero:
       link: /en/guide/handbook/
     - theme: alt
       text: Feedback
-      link: https://github.com/whu-ham/whu-ham.github.io/discussions
+      link: https://discord.gg/GwwGksTDVE
 
 home: true
 heroText: Ham
