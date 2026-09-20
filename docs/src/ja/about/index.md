@@ -12,4 +12,4 @@ Hamは、学籍番号やパスワードを第三者サーバーへ送信して�
 ### なぜ今はオープンソースではないのですか？
 プロジェクトにはプッシュサービスやApple開発者アカウントなどの機密情報が含まれているため、現時点では公開していません。ただし、Hamは完全に無料です。
 
-ご意見は [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions) での交流や技術ディスカッションでお待ちしています。
+ご意見は [Discord コミュニティ](https://discord.gg/GwwGksTDVE) での交流や技術ディスカッションでお待ちしています。

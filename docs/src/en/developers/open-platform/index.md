@@ -83,7 +83,7 @@ sequenceDiagram
 ::: warning How to Apply
 Currently, `client_id` and `client_secret` must be obtained by contacting the developers.
 
-Please reach out via [GitHub Discussions](https://github.com/whu-ham/whu-ham.github.io/discussions) and provide the following information:
+Please reach out via our [Discord community](https://discord.gg/GwwGksTDVE) and provide the following information:
 
 1. Application name and description
 2. Callback URL (`redirect_uri`) whitelist

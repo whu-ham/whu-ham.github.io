@@ -5,8 +5,7 @@
 <p>武汉大学校园生活助手 — 课表查询 · 成绩计算 · 图书馆预约 · 运动场馆预定</p>
 
 <a href="https://docs.ham.nowcent.cn"><img alt="文档" src="https://img.shields.io/badge/文档-docs.ham.nowcent.cn-blue"></a>
-<a href="https://github.com/whu-ham/whu-ham.github.io/discussions"><img alt="讨论" src="https://img.shields.io/badge/讨论-GitHub_Discussions-green"></a>
-<a href="https://discord.gg/GwwGksTDVE"><img alt="反馈" src="https://img.shields.io/badge/反馈-Discord-5865f2"></a>
+<a href="https://discord.gg/GwwGksTDVE"><img alt="Discord" src="https://img.shields.io/badge/Discord-社区-5865f2"></a>
 </div>
 
 ## 简介
