@@ -1,44 +1,87 @@
 name: Android Auto E2E
+run-name: Android Auto E2E (release run ${{ github.event.workflow_run.run_number }})
 
-# The automatic half of the E2E story: the Android release workflow calls this
-# once its build job has passed, so a version is never shipped without the suite
-# having run against it.
+# The automatic half of the E2E story: this starts when the Android release run
+# completes, so a version is never shipped without the suite having run against
+# it — but it runs as a run of its own rather than as a job of that release.
+#
+# Which is what `workflow_run` buys over `workflow_call`. A called workflow's
+# jobs join the caller's run, and the release's `concurrency` group stays
+# occupied for as long as that run does: the suite kept the release open for
+# hours, the next release queued behind it, and a red suite marked as failed a
+# release whose build, publish and announcement had all succeeded. Splitting the
+# two leaves the release ending with its build, and gives the suite a run — and
+# a name — of its own in the Actions list.
 #
 # There is deliberately no `workflow_dispatch`. A run of this suite only makes
 # sense as the tail of a release, and exposing the same knobs twice would let
 # the two halves drift apart. android-e2e.yml is the manual equivalent.
 #
-# `workflow_call` rather than a dispatched event or `workflow_run`: only a
-# reusable workflow can be handed the version being verified, and it needs no
-# token to fire. A `repository_dispatch` sent with the repository's own
+# Nor a dispatched event: a `repository_dispatch` sent with the repository's own
 # GITHUB_TOKEN never starts a run at all, so that route would have needed a PAT
 # for nothing.
 #
-# No `concurrency` group: these jobs join the calling release's run instead of
-# starting one of their own, and that run is already serialised per version by
-# the release workflow's own group.
+# The version under test and the commit it was built from reach this run as an
+# artifact the release uploads, because a `workflow_run` event carries no inputs
+# of its own. Both are needed: the version is what this run claims to have
+# verified, and the commit is an immutable SHA rather than a branch that may
+# have moved on since the build.
 on:
-  workflow_call:
-    inputs:
-      source_sha:
-        description: Immutable SHA of the Android commit the release was built from
-        required: true
-        type: string
-      version_name:
-        description: Version name being verified, e.g. 1.8.0
-        required: true
-        type: string
-      version_code:
-        description: Version code being verified, e.g. 325
-        required: true
-        type: string
-      api_level:
-        description: Emulator Android API level
-        required: false
-        type: string
-        default: '35'
+  workflow_run:
+    workflows: ["Android Release Build"]
+    types: [completed]
+
+# Two releases in quick succession must not boot two emulator fleets at once,
+# and a suite already running must never be cancelled: cancelling one leaves a
+# version unverified and the runner time already spent on it unrecoverable.
+concurrency:
+  group: android-e2e-auto
+  cancel-in-progress: false
 
 jobs:
+  # Reads what the release published about itself.
+  #
+  # The gate on the release's conclusion lives here and nowhere else: every
+  # other job depends on this one, so a release run that failed leaves the whole
+  # suite skipped rather than verifying nothing behind a run that looks green.
+  context:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      source_sha: ${{ steps.context.outputs.source_sha }}
+      version_name: ${{ steps.context.outputs.version_name }}
+      version_code: ${{ steps.context.outputs.version_code }}
+    steps:
+      - name: Download the release context
+        uses: actions/download-artifact@v4
+        with:
+          name: android-e2e-context
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/release-context
+
+      - name: Read the release context
+        id: context
+        run: |
+          set -euo pipefail
+          FILE=$(find "$RUNNER_TEMP/release-context" -name 'e2e-context.json' -print -quit)
+          if [ -z "$FILE" ]; then
+            echo "::error::the release run published no E2E context artifact"
+            exit 1
+          fi
+          for KEY in source_sha version_name version_code; do
+            VALUE=$(jq -r --arg key "$KEY" '.[$key] // empty' "$FILE")
+            if [ -z "$VALUE" ]; then
+              echo "::error::$KEY is missing from the release context"
+              exit 1
+            fi
+            echo "$KEY=$VALUE" >> "$GITHUB_OUTPUT"
+          done
+
   # Asks the fastlane lane for the batch plan before any emulator starts.
   #
   # The batches are packed from the test classes and their `@Test` counts, which only the
@@ -47,6 +90,7 @@ jobs:
   # the batching exists to prevent. The lane prints the plan as JSON and this job turns it
   # into a matrix.
   plan:
+    needs: context
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -60,7 +104,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: whu-ham/ham-android
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ needs.context.outputs.source_sha }}
           token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
           fetch-depth: 1
 
@@ -94,8 +138,8 @@ jobs:
         working-directory: android
         shell: bash
         env:
-          VERSION_NAME: ${{ inputs.version_name }}
-          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ needs.context.outputs.version_name }}
+          VERSION_CODE: ${{ needs.context.outputs.version_code }}
         run: |
           set -euo pipefail
           # The lane writes its JSON with `puts`, but bundler and fastlane also print to
@@ -174,7 +218,7 @@ jobs:
           PY
 
   e2e:
-    needs: plan
+    needs: [context, plan]
 
     # One batch per job, so each batch gets its own runner, its own emulator and — the part
     # that matters — its own instrumentation process. That is what the batching is for: one
@@ -190,10 +234,10 @@ jobs:
       matrix:
         batch: ${{ fromJSON(needs.plan.outputs.batches) }}
 
-    # The version under test rides in the job name because the run that shows it is the
-    # release's own run — a called workflow cannot set `run-name`, so the job list is the
-    # only place the version can be read at a glance.
-    name: E2E ${{ inputs.version_name }} (${{ inputs.version_code }}) - batch ${{ matrix.batch }}/${{ needs.plan.outputs.count }}
+    # The version under test rides in the job name: `run-name` can only reach
+    # the `workflow_run` event, so this is the one place the version can be read
+    # at a glance without opening a job.
+    name: E2E ${{ needs.context.outputs.version_name }} (${{ needs.context.outputs.version_code }}) - batch ${{ matrix.batch }}/${{ needs.plan.outputs.count }}
 
     # Google publishes the Android emulator for Linux as x86_64 only, and the
     # Linux runners expose KVM, so the x86_64 system image boots accelerated.
@@ -238,7 +282,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: whu-ham/ham-android
-          ref: ${{ inputs.source_sha }}
+          ref: ${{ needs.context.outputs.source_sha }}
           token: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
           fetch-depth: 1
 
@@ -358,7 +402,11 @@ jobs:
       - name: Run instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: ${{ inputs.api_level }}
+          # Fixed rather than passed in: a `workflow_run` event carries no
+          # inputs, and 35 is the level every automatic run has always used —
+          # the release never chose one. android-e2e.yml is where the choice is
+          # exposed.
+          api-level: '35'
           target: google_apis
           # GithubDebug keeps both arm64-v8a and x86_64: the Github flavor pins
           # arm64-v8a and the debug build type adds x86_64, and AGP merges
@@ -497,9 +545,12 @@ jobs:
   #
   # `if: always()` because a failing leg must not stop the totals from being reported; the
   # explicit `needs.e2e.result` check is what keeps this job from turning a red run green.
+  #
+  # The `needs.context.result` check is the other half: `always()` would otherwise
+  # run this job for a release run that failed, where there is nothing to add up.
   summary:
-    needs: [plan, e2e]
-    if: always()
+    needs: [context, plan, e2e]
+    if: ${{ always() && needs.context.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -515,8 +566,8 @@ jobs:
         env:
           PLANNED_BATCHES: ${{ needs.plan.outputs.count }}
           PLANNED_TESTS: ${{ needs.plan.outputs.total_tests }}
-          VERSION_NAME: ${{ inputs.version_name }}
-          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ needs.context.outputs.version_name }}
+          VERSION_CODE: ${{ needs.context.outputs.version_code }}
         run: |
           set -uo pipefail
           python3 - <<'PY'
