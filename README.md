@@ -6,7 +6,7 @@
 
 <a href="https://docs.ham.nowcent.cn"><img alt="文档" src="https://img.shields.io/badge/文档-docs.ham.nowcent.cn-blue"></a>
 <a href="https://github.com/whu-ham/whu-ham.github.io/discussions"><img alt="讨论" src="https://img.shields.io/badge/讨论-GitHub_Discussions-green"></a>
-<a href="https://txc.qq.com/products/606034"><img alt="反馈" src="https://img.shields.io/badge/反馈-兔小巢-2378ff"></a>
+<a href="https://discord.gg/GwwGksTDVE"><img alt="反馈" src="https://img.shields.io/badge/反馈-Discord-5865f2"></a>
 </div>
 
 ## 简介
