@@ -88,6 +88,25 @@ jobs:
         with:
           packages: platform-tools
 
+      # The `ubuntu-latest` image already ships Rust (1.98.x) and an Android NDK at
+      # `ANDROID_NDK_HOME` (27.3.13750724), so only the cross-compilation targets and
+      # cargo-ndk are missing. The fastlane `build`/`beta`/`release` lanes run
+      # `:app:cargoBuildRustRelease` before packaging, and that task shells out to
+      # `cargo ndk`; without this step the lanes find no toolchain and fall back to the
+      # committed libsec.so, which is a debug build.
+      - name: Setup Rust for Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Written to $GITHUB_PATH rather than only exported: `gradle/rust.gradle.kts`
+          # runs cargo through `bash -lc`, and a later step would not see an export made
+          # here.
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+          # Pinned, so a cargo-ndk release cannot change the build.
+          cargo install cargo-ndk --version 4.1.2 --locked
+
       - name: Update version files
         env:
           VERSION_CODE: ${{ github.event.client_payload.version_code }}
