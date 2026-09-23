@@ -593,7 +593,7 @@ jobs:
             gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
           done
 
-      # Drops every test build once a real one is published.
+      # Drops the test builds nobody needs any more.
       #
       # A `TEST-` release is a build verification package: it exists so someone
       # can confirm the pipeline still produces an APK, and it has no audience
@@ -601,27 +601,56 @@ jobs:
       # beside the betas users actually download, and one sitting above the
       # newest beta reads as a release.
       #
+      # A beta or release clears all of them. A test build clears all but the
+      # newest few, the one it just published among them, which is what keeps
+      # them from filling the first page of the releases API — all the download
+      # page asks for — and pushing a real build onto a page that page never
+      # fetches.
+      #
       # The git tag goes with it. Beta numbers are derived from `v<name>-betaN`
       # tags, so a `TEST-` tag can never be mistaken for one, but a tag whose
       # release is gone is still clutter. A tag that refuses to delete is
       # warned about rather than failed: the release — the part with the APKs —
       # is already gone.
-      - name: Delete test releases
-        if: ${{ github.event.client_payload.build_type == 'beta' || github.event.client_payload.build_type == 'release' }}
+      #
+      # Nor is deleting one twice a failure. The concurrency group is keyed on
+      # the version name, so a run for another version can be walking this same
+      # list at the same moment and may reach a release first. A delete that
+      # finds nothing left has still done its job, and failing it would abandon
+      # the E2E context below: a real release, already published and already
+      # acknowledged by ham-android, left with no suite run against it.
+      - name: Prune test releases
         env:
           GH_TOKEN: ${{ github.token }}
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
         run: |
           set -euo pipefail
+          # The newest test build is the only one with a purpose, and the two
+          # before it are what makes a burst of pipeline runs comparable.
+          if [ "$BUILD_TYPE" = test ]; then
+            KEEP_TEST_RELEASES=3
+          else
+            KEEP_TEST_RELEASES=0
+          fi
           RELEASE_LIST="$RUNNER_TEMP/test-releases.json"
           gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "$RELEASE_LIST"
-          TEST_TAGS=$(jq -r '[.[] | select(.tag_name | startswith("TEST-"))] | sort_by(.created_at) | .[].tag_name' "$RELEASE_LIST")
+          TEST_TAGS=$(jq -r --argjson keep "$KEEP_TEST_RELEASES" '
+            [.[] | select(.tag_name | startswith("TEST-"))]
+            | sort_by(.created_at) | reverse
+            | .[$keep:][].tag_name' "$RELEASE_LIST")
           if [ -z "$TEST_TAGS" ]; then
-            echo "No test releases present, nothing to delete."
+            echo "Nothing to prune, keeping the newest $KEEP_TEST_RELEASES test releases."
             exit 0
           fi
           printf '%s\n' "$TEST_TAGS" | while read -r TAG; do
-            echo "Deleting test release $TAG"
-            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+            if gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes; then
+              echo "Deleted test release $TAG"
+            elif gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" >/dev/null 2>&1; then
+              echo "::error::test release $TAG is still present after a failed delete"
+              exit 1
+            else
+              echo "Test release $TAG was deleted by another run, treating it as done"
+            fi
             gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" >/dev/null \
               || echo "::warning::could not delete the tag $TAG"
           done
