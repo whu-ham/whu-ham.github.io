@@ -188,6 +188,25 @@ jobs:
           bundle config set --local path "$RUNNER_TEMP/bundle"
           bundle install --jobs 4 --retry 3
 
+      # A test build exists to prove the pipeline still builds, so it packages
+      # exactly what a beta does and stops there: the `build` lane is `beta`
+      # without `upload_to_play_store`, so no AAB reaches Google Play and the
+      # GitHub Release below is the only thing published.
+      #
+      # `versionType` only labels telemetry — it reaches analytics and
+      # Crashlytics as `VERSION_TYPE`, and nothing serverside or in the app
+      # branches on it — so `test` keeps a test build out of beta's numbers
+      # rather than silently inflating them.
+      - name: Build Test
+        if: ${{ github.event.client_payload.build_type == 'test' }}
+        run: |
+          cd android
+          bundle exec fastlane android build
+        env:
+          ORG_GRADLE_PROJECT_ham.key.password: ${{ secrets.HAM_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_ham.key.alias: ${{ secrets.HAM_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_versionType: test
+
       - name: Build Beta
         if: ${{ github.event.client_payload.build_type == 'beta' }}
         run: |
@@ -209,16 +228,16 @@ jobs:
           ORG_GRADLE_PROJECT_versionType: release
 
       - name: Add fixed-name release APK
-        if: ${{ github.event.client_payload.build_type == 'beta' || github.event.client_payload.build_type == 'release' }}
+        if: ${{ github.event.client_payload.build_type == 'test' || github.event.client_payload.build_type == 'beta' || github.event.client_payload.build_type == 'release' }}
         env:
           BUILD_TYPE: ${{ github.event.client_payload.build_type }}
         run: |
           set -euo pipefail
-          if [ "$BUILD_TYPE" = "beta" ]; then
-            APK_NAME="Ham-beta.apk"
-          else
-            APK_NAME="Ham-release.apk"
-          fi
+          case "$BUILD_TYPE" in
+            test) APK_NAME="Ham-test.apk" ;;
+            beta) APK_NAME="Ham-beta.apk" ;;
+            *) APK_NAME="Ham-release.apk" ;;
+          esac
           SOURCE_APK=$(find android/app/build/outputs/apk -type f -name '*Github*.apk' -print -quit)
           if [ -z "$SOURCE_APK" ]; then
             echo "No Github APK found"
@@ -253,9 +272,12 @@ jobs:
               --limit 100 --json tagName,isPrerelease \
               --jq '[.[] | select(.isPrerelease | not)][0].tagName // empty' || true)
           else
+            # `TEST-` releases are excluded: one is a build verification
+            # package, not a version anybody was given, so a beta built after
+            # one must not be described as based on it.
             PREVIOUS_PUBLIC_TAG=$(gh release list --repo "$GITHUB_REPOSITORY" \
               --limit 100 --json tagName,isPrerelease \
-              --jq '[.[] | select(.isPrerelease)][0].tagName // empty' || true)
+              --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("TEST-") | not)][0].tagName // empty' || true)
           fi
           echo "PREVIOUS_PUBLIC_TAG=$PREVIOUS_PUBLIC_TAG" >> "$GITHUB_ENV"
 
@@ -266,6 +288,7 @@ jobs:
           VERSION_CODE: ${{ github.event.client_payload.version_code }}
           VERSION_NAME: ${{ github.event.client_payload.version_name }}
           SOURCE_REF: ${{ github.event.client_payload.source_ref }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
           # ham-android is private, so resolving a commit to its GitHub
           # account needs the Android token, not the workflow's own.
           GH_TOKEN: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
@@ -274,6 +297,34 @@ jobs:
           VERSION_CODE="$VERSION_CODE"
           NOTES_FILE="$RUNNER_TEMP/release-notes.md"
           echo "RELEASE_NOTES_FILE=$NOTES_FILE" >> "$GITHUB_ENV"
+
+          # A test build is not a version, so it gets no changelog: there is no
+          # previous version to diff against and nothing was handed to users.
+          # What matters is only that it built, which commit it came from, and
+          # that it is not something to install.
+          if [ "$BUILD_TYPE" = "test" ]; then
+            {
+              echo "## 🧪 Test - 构建测试包 / Build Test Package"
+              echo
+              echo "> 该包仅用于验证构建流程，**不作为正式版本**，请勿用于生产环境或对外分发。"
+              echo "> This package only verifies the build pipeline. It is **not an official release**: do not use it in production or redistribute it."
+              echo
+              echo "- 构建类型 / Build type: \`test\`"
+              echo "- 源码提交 / Commit: \`${SOURCE_SHA:0:8}\` (\`${SOURCE_REF}\`)"
+              echo "- 版本 / Version: \`${VERSION_NAME}\` (\`${VERSION_CODE}\`)"
+              echo
+              echo "### ⚠️ 注意事项 / Notes"
+              echo
+              echo "- 未上传到 Google Play，仅在 GitHub Releases 提供下载。"
+              echo "- 下一次 beta 或 release 构建会删除本发布及其标签。"
+              echo "- 该包不代表任何已发布版本，不保证稳定性。"
+              echo "- Not uploaded to Google Play; it is only published here as a GitHub Release."
+              echo "- The next beta or release build deletes this release and its tag."
+              echo "- It is not a released version and carries no stability guarantee."
+              echo
+            } > "$NOTES_FILE"
+            exit 0
+          fi
 
           # Cap the commit list so a long release window cannot produce an
           # unusable wall of text.
@@ -407,8 +458,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BUILD_TYPE: ${{ github.event.client_payload.build_type }}
           VERSION_NAME: ${{ github.event.client_payload.version_name }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
         run: |
           set -euo pipefail
+          if [ "$BUILD_TYPE" = "test" ]; then
+            # `TEST-`, then the build time in UTC to the second, then the commit
+            # it was built from. The timestamp is what makes the tag unique, so
+            # a test build never has to be numbered; the commit is what a reader
+            # needs to know was actually compiled.
+            PUBLIC_TAG="TEST-$(date -u +%Y%m%d%H%M%S)-${SOURCE_SHA:0:8}"
+            echo "public_tag=$PUBLIC_TAG" >> "$GITHUB_OUTPUT"
+            echo "beta_num=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$BUILD_TYPE" = "release" ]; then
             PUBLIC_TAG="v${VERSION_NAME}"
             BETA_NUM=""
@@ -438,13 +500,17 @@ jobs:
           PUBLIC_TAG: ${{ steps.public-release.outputs.public_tag }}
         run: |
           RELEASE_ARGS=("$PUBLIC_TAG" --repo "$GITHUB_REPOSITORY" --title "$PUBLIC_TAG" --notes-file "$RELEASE_NOTES_FILE")
-          if [ "$BUILD_TYPE" = "beta" ]; then
-            RELEASE_ARGS+=(--prerelease)
-          else
+          if [ "$BUILD_TYPE" = "release" ]; then
             RELEASE_ARGS+=(--draft)
+          else
+            # A test build is a prerelease for the same reason a beta is, and
+            # for one more: unlike a draft, a prerelease is returned by the
+            # releases API, which is the only way the cleanup step below can
+            # find it.
+            RELEASE_ARGS+=(--prerelease)
           fi
           GITHUB_APKS=$(find apks -type f -name '*Github*.apk')
-          FIXED_APK=$(find apks -type f \( -name 'Ham-release.apk' -o -name 'Ham-beta.apk' \))
+          FIXED_APK=$(find apks -type f \( -name 'Ham-release.apk' -o -name 'Ham-beta.apk' -o -name 'Ham-test.apk' \))
           if [ -z "$GITHUB_APKS" ] || [ -z "$FIXED_APK" ]; then
             echo "No Github APKs found"
             exit 1
@@ -527,6 +593,39 @@ jobs:
             gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
           done
 
+      # Drops every test build once a real one is published.
+      #
+      # A `TEST-` release is a build verification package: it exists so someone
+      # can confirm the pipeline still produces an APK, and it has no audience
+      # afterwards. Left alone they accumulate — each carrying its own APKs —
+      # beside the betas users actually download, and one sitting above the
+      # newest beta reads as a release.
+      #
+      # The git tag goes with it. Beta numbers are derived from `v<name>-betaN`
+      # tags, so a `TEST-` tag can never be mistaken for one, but a tag whose
+      # release is gone is still clutter. A tag that refuses to delete is
+      # warned about rather than failed: the release — the part with the APKs —
+      # is already gone.
+      - name: Delete test releases
+        if: ${{ github.event.client_payload.build_type == 'beta' || github.event.client_payload.build_type == 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_LIST="$RUNNER_TEMP/test-releases.json"
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "$RELEASE_LIST"
+          TEST_TAGS=$(jq -r '[.[] | select(.tag_name | startswith("TEST-"))] | sort_by(.created_at) | .[].tag_name' "$RELEASE_LIST")
+          if [ -z "$TEST_TAGS" ]; then
+            echo "No test releases present, nothing to delete."
+            exit 0
+          fi
+          printf '%s\n' "$TEST_TAGS" | while read -r TAG; do
+            echo "Deleting test release $TAG"
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" >/dev/null \
+              || echo "::warning::could not delete the tag $TAG"
+          done
+
       # Publishes what the E2E suite needs to know about this release.
       #
       # Nothing in this workflow waits for the suite any more: android-e2e-auto.yml
@@ -540,6 +639,11 @@ jobs:
       # moved on since. See that step for why re-resolving it here would be
       # wrong.
       #
+      # The build type rides along because a `workflow_run` event carries no
+      # inputs: without it the suite cannot tell a test build from a release,
+      # and would spend an emulator fleet on a package nobody asked it to
+      # verify.
+      #
       # Last step of the job on purpose: the artifact is what starts the suite, so
       # a build that failed anywhere above publishes nothing and is followed by
       # no run at all.
@@ -548,13 +652,15 @@ jobs:
           SOURCE_SHA: ${{ steps.source.outputs.sha }}
           VERSION_NAME: ${{ github.event.client_payload.version_name }}
           VERSION_CODE: ${{ github.event.client_payload.version_code }}
+          BUILD_TYPE: ${{ github.event.client_payload.build_type }}
         run: |
           set -euo pipefail
           jq -n \
             --arg sha "$SOURCE_SHA" \
             --arg name "$VERSION_NAME" \
             --arg code "$VERSION_CODE" \
-            '{source_sha: $sha, version_name: $name, version_code: $code}' \
+            --arg type "$BUILD_TYPE" \
+            '{source_sha: $sha, version_name: $name, version_code: $code, build_type: $type}' \
             > "$RUNNER_TEMP/e2e-context.json"
           cat "$RUNNER_TEMP/e2e-context.json"
 
