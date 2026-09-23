@@ -20,11 +20,30 @@ interface AndroidApkInfo {
   downloadCount: number;
 }
 
+/**
+ * Build verification packages are published as `TEST-<timestamp>-<commit>`.
+ *
+ * The download page reads the same releases API the release workflow publishes
+ * to, so a test build would otherwise be listed as a version: newest first, and
+ * counted against MAX_PRERELEASE_COUNT, so one test build is enough to push a
+ * real beta off the page. They are dropped here rather than never published,
+ * because a maintainer still needs the APK they produced.
+ *
+ * Dropping them can only remove what the API returned, and this page asks for a
+ * single page of it — GitHub answers with the newest 30 releases by default.
+ * What keeps test builds from filling that page, and so from pushing every real
+ * release onto a second page nobody fetches, is the release workflow: it keeps
+ * only a handful of them however many are built.
+ */
+const TEST_RELEASE_TAG_PREFIX = 'TEST-';
+
 const getLatestAndroidVersionInfo = async () => {
   const {releases, proxyPrefix} = await fetchGithubReleaseList();
-  const androidVersionInfoList = releases.map(o => {
-    return mapGithubResponseToAndroidVersionInfo(o, proxyPrefix);
-  });
+  const androidVersionInfoList = releases
+    .filter(o => !o.tag_name.startsWith(TEST_RELEASE_TAG_PREFIX))
+    .map(o => {
+      return mapGithubResponseToAndroidVersionInfo(o, proxyPrefix);
+    });
 
   const resultList: AndroidVersionInfo[] = [];
   let prereleaseCount = 0;

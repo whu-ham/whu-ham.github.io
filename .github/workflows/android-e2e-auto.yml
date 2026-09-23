@@ -25,7 +25,9 @@ run-name: Android Auto E2E (release run ${{ github.event.workflow_run.run_number
 # artifact the release uploads, because a `workflow_run` event carries no inputs
 # of its own. Both are needed: the version is what this run claims to have
 # verified, and the commit is an immutable SHA rather than a branch that may
-# have moved on since the build.
+# have moved on since the build. The build type comes across the same way, and
+# is what keeps a `test` build — a package published to prove the pipeline
+# compiles, with nobody to verify it for — from costing an emulator fleet.
 on:
   workflow_run:
     workflows: ["Android Release Build"]
@@ -55,6 +57,8 @@ jobs:
       source_sha: ${{ steps.context.outputs.source_sha }}
       version_name: ${{ steps.context.outputs.version_name }}
       version_code: ${{ steps.context.outputs.version_code }}
+      build_type: ${{ steps.context.outputs.build_type }}
+      skip: ${{ steps.context.outputs.skip }}
     steps:
       - name: Download the release context
         uses: actions/download-artifact@v4
@@ -82,6 +86,21 @@ jobs:
             echo "$KEY=$VALUE" >> "$GITHUB_OUTPUT"
           done
 
+          # Optional on purpose: a context published before the release wrote a
+          # build type has to keep running the suite, and a release is the
+          # version worth verifying either way.
+          BUILD_TYPE=$(jq -r '.build_type // "release"' "$FILE")
+          echo "build_type=$BUILD_TYPE" >> "$GITHUB_OUTPUT"
+          # A test build is a build verification package. There is no version
+          # for this run to claim it verified, and nothing to be learned from
+          # pointing the suite at it.
+          if [ "$BUILD_TYPE" = test ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Build type is test; no E2E run is needed."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Asks the fastlane lane for the batch plan before any emulator starts.
   #
   # The batches are packed from the test classes and their `@Test` counts, which only the
@@ -91,6 +110,7 @@ jobs:
   # into a matrix.
   plan:
     needs: context
+    if: ${{ needs.context.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -219,6 +239,7 @@ jobs:
 
   e2e:
     needs: [context, plan]
+    if: ${{ needs.context.outputs.skip != 'true' }}
 
     # One batch per job, so each batch gets its own runner, its own emulator and — the part
     # that matters — its own instrumentation process. That is what the batching is for: one
@@ -550,7 +571,7 @@ jobs:
   # run this job for a release run that failed, where there is nothing to add up.
   summary:
     needs: [context, plan, e2e]
-    if: ${{ always() && needs.context.result == 'success' }}
+    if: ${{ always() && needs.context.result == 'success' && needs.context.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
