@@ -327,13 +327,26 @@ jobs:
           # `dependabot` organisation and leaves `@github-actions[bot]` as
           # text, so an `@` there would only mislead.
           LOGIN_BY_SHA="$RUNNER_TEMP/commit-logins.json"
+          LOGIN_PAGES="$RUNNER_TEMP/commit-login-pages.json"
           printf '{}\n' > "$LOGIN_BY_SHA"
+          : > "$LOGIN_PAGES"
           if [ -n "$PREVIOUS_TAG" ] && [ -n "$SHOWN_COMMITS" ]; then
-            # One call covers the whole range. A failure here must not fail
-            # the release, so a missing map falls back to the git name.
-            gh api "repos/whu-ham/ham-android/compare/${PREVIOUS_TAG}...${SOURCE_REF}" \
+            # The commits array is returned oldest first and capped at 250
+            # entries per page, while SHOWN_COMMITS holds the newest 50: a
+            # single response covers the oldest commits of the range, so a
+            # window longer than one page would match none of the commits
+            # shown and every author would silently fall back to the git
+            # name. --paginate walks the remaining pages.
+            #
+            # --jq runs once per page, so every page emits its own object
+            # rather than one merged map; they are combined below. A failure
+            # here must not fail the release, so an empty map falls back to
+            # the git name.
+            gh api --paginate "repos/whu-ham/ham-android/compare/${PREVIOUS_TAG}...${SOURCE_REF}" \
               --jq '[.commits[] | .author.login as $login | {key: .sha, value: (if $login == null then .commit.author.name elif ($login | endswith("[bot]")) then $login else "@" + $login end)}] | from_entries' \
-              > "$LOGIN_BY_SHA" || printf '{}\n' > "$LOGIN_BY_SHA"
+              > "$LOGIN_PAGES" || : > "$LOGIN_PAGES"
+            # `add` over an empty stream yields null, hence the `// {}`.
+            jq -s 'add // {}' "$LOGIN_PAGES" > "$LOGIN_BY_SHA"
           fi
 
           SHOWN_LINES=$(printf '%s\n' "$SHOWN_COMMITS" | jq -Rr --slurpfile logins "$LOGIN_BY_SHA" '
