@@ -267,14 +267,20 @@ jobs:
           # the Android repository the notes are generated in (v1.7.6.191-beta).
           # The commit range has to come from the Android tags, since those are
           # real git refs, but the notes should show the public name users see.
+          # A `TEST-` release is a build verification package, not a version
+          # anybody was given, so neither a beta nor a release is described as
+          # based on one.
+          #
+          # It is excluded by tag, not by the prerelease flag: a test build is
+          # published as an ordinary release, so the flag no longer tells it
+          # apart from a real one — and on the stable branch below it never
+          # did. Without the tag filter a test build newer than the last
+          # stable release would be picked as its predecessor.
           if [ "$BUILD_TYPE" = "release" ]; then
             PREVIOUS_PUBLIC_TAG=$(gh release list --repo "$GITHUB_REPOSITORY" \
               --limit 100 --json tagName,isPrerelease \
-              --jq '[.[] | select(.isPrerelease | not)][0].tagName // empty' || true)
+              --jq '[.[] | select(.isPrerelease | not) | select(.tagName | startswith("TEST-") | not)][0].tagName // empty' || true)
           else
-            # `TEST-` releases are excluded: one is a build verification
-            # package, not a version anybody was given, so a beta built after
-            # one must not be described as based on it.
             PREVIOUS_PUBLIC_TAG=$(gh release list --repo "$GITHUB_REPOSITORY" \
               --limit 100 --json tagName,isPrerelease \
               --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("TEST-") | not)][0].tagName // empty' || true)
@@ -502,12 +508,20 @@ jobs:
           RELEASE_ARGS=("$PUBLIC_TAG" --repo "$GITHUB_REPOSITORY" --title "$PUBLIC_TAG" --notes-file "$RELEASE_NOTES_FILE")
           if [ "$BUILD_TYPE" = "release" ]; then
             RELEASE_ARGS+=(--draft)
-          else
-            # A test build is a prerelease for the same reason a beta is, and
-            # for one more: unlike a draft, a prerelease is returned by the
-            # releases API, which is the only way the cleanup step below can
-            # find it.
+          elif [ "$BUILD_TYPE" = "beta" ]; then
             RELEASE_ARGS+=(--prerelease)
+          else
+            # A test build is an ordinary release: not a draft, because a
+            # draft is invisible to the releases API and so to the cleanup
+            # step below, and not a prerelease, because it was never a
+            # version anybody was given — the notes say that instead.
+            #
+            # `--latest=false` is the one flag it does carry. A published
+            # release takes the repository's *Latest* badge by default, and a
+            # build verification package must not take it from the release
+            # users are actually pointed at. The release is still published,
+            # so it is still returned by the releases API the cleanup reads.
+            RELEASE_ARGS+=(--latest=false)
           fi
           GITHUB_APKS=$(find apks -type f -name '*Github*.apk')
           FIXED_APK=$(find apks -type f \( -name 'Ham-release.apk' -o -name 'Ham-beta.apk' -o -name 'Ham-test.apk' \))
