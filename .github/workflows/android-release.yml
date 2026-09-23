@@ -506,11 +506,16 @@ jobs:
           PUBLIC_TAG: ${{ steps.public-release.outputs.public_tag }}
         run: |
           RELEASE_ARGS=("$PUBLIC_TAG" --repo "$GITHUB_REPOSITORY" --title "$PUBLIC_TAG" --notes-file "$RELEASE_NOTES_FILE")
-          if [ "$BUILD_TYPE" = "release" ]; then
-            RELEASE_ARGS+=(--draft)
-          elif [ "$BUILD_TYPE" = "beta" ]; then
+          # A stable release carries no flag at all: it is published as-is and
+          # takes the repository's *Latest* badge, which is the one a stable
+          # build should hold. It used to be created as a draft, but there is
+          # nothing left to review before it goes out — the APKs are already
+          # built and the notes already generated — and a draft is invisible to
+          # the releases API, so it stayed off the download page until someone
+          # published it by hand.
+          if [ "$BUILD_TYPE" = "beta" ]; then
             RELEASE_ARGS+=(--prerelease)
-          else
+          elif [ "$BUILD_TYPE" = "test" ]; then
             # A test build is an ordinary release: not a draft, because a
             # draft is invisible to the releases API and so to the cleanup
             # step below, and not a prerelease, because it was never a
