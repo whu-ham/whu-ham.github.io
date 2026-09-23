@@ -265,6 +265,10 @@ jobs:
           BUILD_TYPE: ${{ github.event.client_payload.build_type }}
           VERSION_CODE: ${{ github.event.client_payload.version_code }}
           VERSION_NAME: ${{ github.event.client_payload.version_name }}
+          SOURCE_REF: ${{ github.event.client_payload.source_ref }}
+          # ham-android is private, so resolving a commit to its GitHub
+          # account needs the Android token, not the workflow's own.
+          GH_TOKEN: ${{ secrets.HAM_ANDROID_REPO_TOKEN }}
         run: |
           VERSION_NAME="$VERSION_NAME"
           VERSION_CODE="$VERSION_CODE"
@@ -295,15 +299,51 @@ jobs:
             IMPORTANT_NOTE_3=""
           fi
 
+          # Tab-separated, and keyed by the full SHA: the rows are joined
+          # against the API below, which is the only place the GitHub account
+          # behind each commit is recorded.
           COMMITS=""
           if [ -n "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log "${PREVIOUS_TAG}..${{ github.event.client_payload.source_ref }}" --no-merges --pretty=format:'- `%h` %s (%an)' | grep -Fv 'chore: bump version to ' || true)
+            COMMITS=$(git log "${PREVIOUS_TAG}..${SOURCE_REF}" --no-merges --pretty=format:'%H%x09%an%x09%s' | grep -Fv 'chore: bump version to ' || true)
           fi
           COMMIT_COUNT=$(printf '%s\n' "$COMMITS" | sed '/^$/d' | wc -l | tr -d ' ')
           SHOWN_COMMITS="$COMMITS"
           if [ "$COMMIT_COUNT" -gt "$MAX_COMMITS" ]; then
             SHOWN_COMMITS=$(printf '%s\n' "$COMMITS" | sed '/^$/d' | head -n "$MAX_COMMITS")
           fi
+
+          # These notes are published in this repository while the commits
+          # come from whu-ham/ham-android, so a bare `#119` in a subject is
+          # read as issue 119 of whu-ham.github.io. It is qualified below so
+          # the link lands on the Android pull request it was merged from.
+          #
+          # The author needs the same care, and more than an `@` prefix: git
+          # records a name, not a GitHub account. `orangeboy` here is
+          # `orangeboyChen` on GitHub, and `@orangeboy` is a different account
+          # that exists, so prefixing the name would name the wrong person.
+          # Each commit is therefore resolved to the account that authored it.
+          # Authors with no linked account keep the plain git name, and bot
+          # authors stay plain too: GitHub links `@dependabot[bot]` to the
+          # `dependabot` organisation and leaves `@github-actions[bot]` as
+          # text, so an `@` there would only mislead.
+          LOGIN_BY_SHA="$RUNNER_TEMP/commit-logins.json"
+          printf '{}\n' > "$LOGIN_BY_SHA"
+          if [ -n "$PREVIOUS_TAG" ] && [ -n "$SHOWN_COMMITS" ]; then
+            # One call covers the whole range. A failure here must not fail
+            # the release, so a missing map falls back to the git name.
+            gh api "repos/whu-ham/ham-android/compare/${PREVIOUS_TAG}...${SOURCE_REF}" \
+              --jq '[.commits[] | .author.login as $login | {key: .sha, value: (if $login == null then .commit.author.name elif ($login | endswith("[bot]")) then $login else "@" + $login end)}] | from_entries' \
+              > "$LOGIN_BY_SHA" || printf '{}\n' > "$LOGIN_BY_SHA"
+          fi
+
+          SHOWN_LINES=$(printf '%s\n' "$SHOWN_COMMITS" | jq -Rr --slurpfile logins "$LOGIN_BY_SHA" '
+            ($logins[0] // {}) as $logins
+            | select(length > 0)
+            | split("\t") as $commit
+            | ($commit[0]) as $sha
+            | ($logins[$sha] // $commit[1]) as $author
+            | ($commit[2] | gsub("(?<p>^|[^A-Za-z0-9_./-])#(?<n>[0-9]+)"; "\(.p)whu-ham/ham-android#\(.n)")) as $subject
+            | "- `\($sha[0:8])` \($subject) (\($author))"')
 
           {
             echo "$TITLE"
@@ -325,8 +365,8 @@ jobs:
                 echo "> 基于 \`${PREVIOUS_TAG}\` 之后的变更，提交数量：${COMMIT_COUNT}"
               fi
               echo
-              if [ -n "$SHOWN_COMMITS" ]; then
-                echo "$SHOWN_COMMITS"
+              if [ -n "$SHOWN_LINES" ]; then
+                echo "$SHOWN_LINES"
                 if [ "$COMMIT_COUNT" -gt "$MAX_COMMITS" ]; then
                   echo
                   echo "- 仅显示最近 ${MAX_COMMITS} 条提交，完整列表见提交历史。"
