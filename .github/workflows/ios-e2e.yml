@@ -243,10 +243,11 @@ jobs:
           # device or OS: it launches with a pinned en_US locale and skips any
           # screen it cannot reach, so no dispatch input is needed here.
           #
-          # Vendored SDKs (TPNS, AMap) ship arm64 for the device only and their
-          # simulator slice is x86_64, so the build must exclude arm64 for the
-          # simulator SDK. XGExtension already encodes this in its own Debug
-          # configuration.
+          # The lane builds the simulator slice natively: the Podfile's
+          # `post_integrate` hook drops the device-only link flags, so nothing
+          # here excludes arm64. Excluding it — as the lane used to, on the
+          # xcodebuild command line — pins the build to x86_64 and runs the
+          # whole suite under Rosetta on an arm64 runner.
           RUNTIME_ID=$(xcrun simctl list runtimes available -j | python3 -c '
           import json, sys
           runtimes = json.load(sys.stdin)["runtimes"]
